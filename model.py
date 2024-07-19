@@ -1,57 +1,29 @@
 import numpy as np
 from scipy import optimize
 
-
-def flat_fine(income, params):
-    rate = params[0]
-    return rate
-
-
-def income_based_fine(income, params):
-    base_rate = params[0]
-    income_factor = params[1]
-    return base_rate + income_factor * income
+from utils import WORK_HOURS_PER_YEAR, DEFAULT_LABOR_DISUTILITY_FACTOR
 
 
 class Agent:
     def __init__(
         self,
-        income,
+        potential_income,
         income_utility_factor,
         labor_disutility_factor,
         speeding_utility_factor,
     ):
-        self.income = np.float64(income)
-        self.labor_supply = 0.0
+        self.potential_income = np.float64(potential_income)
+        self.wage_rate = self.potential_income / WORK_HOURS_PER_YEAR
+        self.labor_supply = 0.0  # In hours
         self.speeding = 0.0
         self.fine = 0.0
         self.income_utility_factor = income_utility_factor
         self.labor_disutility_factor = labor_disutility_factor
         self.speeding_utility_factor = speeding_utility_factor
 
-    def optimize(self, fine_function, death_prob, ubi, tax_rate, vsl):
-        def objective(x):
-            labor, speeding = x
-            return -self.calculate_utility(
-                labor, speeding, fine_function, death_prob, ubi, tax_rate, vsl
-            )
-
-        bounds = [(0, 1), (0, 1)]  # Bounds for labor and speeding
-        result = optimize.minimize(
-            objective, [0.5, 0.5], method="L-BFGS-B", bounds=bounds
-        )
-
-        self.labor_supply, self.speeding = result.x
-        self.fine = np.float64(
-            fine_function(self.income * self.labor_supply) * self.speeding
-        )
-        return (
-            -result.fun
-        )  # Return the utility (negative of the minimized objective)
-
     def calculate_utility(
         self,
-        labor,
+        labor_hours,
         speeding,
         fine_function,
         death_prob,
@@ -59,20 +31,52 @@ class Agent:
         tax_rate,
         vsl,
     ):
-        gross_income = max(self.income * labor, 1000)  # Ensure minimum income
-        fine = min(
-            fine_function(gross_income) * speeding, 0.5 * gross_income
-        )  # Cap fine at 50% of gross income
+        gross_income = self.wage_rate * labor_hours
+        fine = fine_function(gross_income) * speeding
         tax = gross_income * tax_rate
         net_income = gross_income - fine - tax + ubi
 
+        # Simplified labor disutility calculation
+        labor_disutility = (
+            self.labor_disutility_factor
+            * (labor_hours**2)
+            / (2 * WORK_HOURS_PER_YEAR)
+        )
+
         utility = (
-            -self.labor_disutility_factor * labor**2
+            -labor_disutility
             + self.speeding_utility_factor * np.log(1 + speeding)
             - death_prob * speeding * vsl
             + self.income_utility_factor * np.log(1 + net_income)
         )
         return np.float64(utility)
+
+    def optimize(self, fine_function, death_prob, ubi, tax_rate, vsl):
+        def objective(x):
+            labor_hours, speeding = x
+            return -self.calculate_utility(
+                labor_hours,
+                speeding,
+                fine_function,
+                death_prob,
+                ubi,
+                tax_rate,
+                vsl,
+            )
+
+        bounds = [
+            (0, 2080),
+            (0, 1),
+        ]  # Bounds for labor hours (0 to 2080) and speeding (0 to 1)
+        result = optimize.minimize(
+            objective, [1040, 0.5], method="L-BFGS-B", bounds=bounds
+        )
+
+        self.labor_supply, self.speeding = result.x
+        self.fine = np.float64(
+            fine_function(self.wage_rate * self.labor_supply) * self.speeding
+        )
+        return -result.fun  # Return the utility
 
 
 def simulate_society(
@@ -152,3 +156,14 @@ def simulate_society(
     except Exception as e:
         print(f"An error occurred during simulation: {str(e)}")
         return None
+
+
+def flat_fine(income, params):
+    rate = params[0]
+    return rate
+
+
+def income_based_fine(income, params):
+    base_rate = params[0]
+    income_factor = params[1]
+    return base_rate + income_factor * income
