@@ -3,8 +3,21 @@ import pandas as pd
 from model import flat_fine, income_based_fine, simulate_society
 from optimization import optimize_fine
 from visualization import plot_results, analyze_income_groups
-from utils import generate_incomes
+from utils import (
+    generate_incomes,
+    DEFAULT_MEAN_INCOME,
+    DEFAULT_SD_INCOME,
+    DEFAULT_NUM_AGENTS,
+    DEFAULT_DEATH_PROB_FACTOR,
+    DEFAULT_VSL,
+    DEFAULT_LABOR_DISUTILITY_FACTOR,
+    DEFAULT_SPEEDING_UTILITY_FACTOR,
+    DEFAULT_INCOME_UTILITY_FACTOR,
+    DEFAULT_NUM_ITERATIONS,
+    DEFAULT_TAX_RATE,
+)
 from gather_code import gather_code
+from utility_explorer import utility_explorer
 
 
 def run_simulation(
@@ -12,7 +25,7 @@ def run_simulation(
     initial_params,
     name,
     incomes,
-    TAX_RATE,
+    tax_rate,
     num_iterations,
     death_prob_factor,
     income_utility_factor,
@@ -26,7 +39,7 @@ def run_simulation(
             fine_function,
             initial_params,
             incomes,
-            TAX_RATE,
+            tax_rate,
             num_iterations,
             death_prob_factor,
             income_utility_factor,
@@ -110,33 +123,72 @@ def run_simulation(
 def main():
     st.title("Traffic Fine Simulation")
 
+    if st.sidebar.button("Explore Utility Function"):
+        utility_explorer()
+        return
+
     st.sidebar.header("Simulation Parameters")
-    num_agents = st.sidebar.slider("Number of Agents", 50, 500, 100)
-    num_iterations = st.sidebar.slider("Number of Iterations", 5, 50, 20)
-    initial_tax_rate = st.sidebar.slider("Initial Tax Rate", 0.0, 1.0, 0.3)
+    num_agents = st.sidebar.slider(
+        "Number of Agents",
+        1,
+        int(DEFAULT_NUM_AGENTS * 10),
+        DEFAULT_NUM_AGENTS,
+    )
+    num_iterations = st.sidebar.slider(
+        "Number of Iterations",
+        1,
+        int(DEFAULT_NUM_ITERATIONS * 10),
+        DEFAULT_NUM_ITERATIONS,
+    )
+    initial_tax_rate = st.sidebar.slider(
+        "Initial Tax Rate", 0.0, 1.0, DEFAULT_TAX_RATE
+    )
     vsl = st.sidebar.number_input(
-        "Value of Statistical Life", 1e6, 1e8, 1e7, format="%.2e"
+        "Value of Statistical Life",
+        int(DEFAULT_VSL / 10),
+        int(DEFAULT_VSL * 10),
+        DEFAULT_VSL,
+        format="%.2e",
     )
     death_prob_factor = st.sidebar.number_input(
-        "Death Probability Factor", 0.000001, 0.0001, 0.00001, format="%.6f"
+        "Death Probability Factor",
+        DEFAULT_DEATH_PROB_FACTOR / 10,
+        DEFAULT_DEATH_PROB_FACTOR * 10,
+        DEFAULT_DEATH_PROB_FACTOR,
+        format="%.6f",
     )
     income_mean = st.sidebar.number_input(
-        "Income Distribution Mean", 1.0, 20.0, 10.0
+        "Income Distribution Mean",
+        int(DEFAULT_MEAN_INCOME / 10),
+        int(DEFAULT_MEAN_INCOME * 10),
+        DEFAULT_MEAN_INCOME,
     )
     income_std = st.sidebar.number_input(
-        "Income Distribution Std Dev", 0.1, 5.0, 1.0
+        "Income Distribution Std Dev",
+        int(DEFAULT_SD_INCOME / 10),
+        int(DEFAULT_SD_INCOME * 10),
+        DEFAULT_SD_INCOME,
     )
 
     advanced_params = st.sidebar.expander("Advanced Parameters")
     with advanced_params:
         labor_disutility_factor = st.number_input(
-            "Labor Disutility Factor", 1.0, 10.0, 3.0
+            "Labor Disutility Factor",
+            DEFAULT_LABOR_DISUTILITY_FACTOR / 10,
+            DEFAULT_LABOR_DISUTILITY_FACTOR * 10,
+            DEFAULT_LABOR_DISUTILITY_FACTOR,
         )
         speeding_utility_factor = st.number_input(
-            "Speeding Utility Factor", 0.1, 5.0, 1.0
+            "Speeding Utility Factor",
+            DEFAULT_SPEEDING_UTILITY_FACTOR / 10,
+            DEFAULT_SPEEDING_UTILITY_FACTOR * 10,
+            DEFAULT_SPEEDING_UTILITY_FACTOR,
         )
         income_utility_factor = st.number_input(
-            "Income Utility Factor", 1.0, 10.0, 2.0
+            "Income Utility Factor",
+            DEFAULT_INCOME_UTILITY_FACTOR / 10,
+            DEFAULT_INCOME_UTILITY_FACTOR * 10,
+            DEFAULT_INCOME_UTILITY_FACTOR,
         )
 
     if st.sidebar.button("Run Simulation"):
