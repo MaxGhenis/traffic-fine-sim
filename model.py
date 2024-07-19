@@ -29,11 +29,11 @@ class Agent:
         self.labor_disutility_factor = labor_disutility_factor
         self.speeding_utility_factor = speeding_utility_factor
 
-    def optimize(self, fine_function, death_prob, ubi, tax_rate):
+    def optimize(self, fine_function, death_prob, ubi, tax_rate, vsl):
         def objective(x):
             labor, speeding = x
             return -self.calculate_utility(
-                labor, speeding, fine_function, death_prob, ubi, tax_rate
+                labor, speeding, fine_function, death_prob, ubi, tax_rate, vsl
             )
 
         bounds = [(0, 1), (0, 1)]  # Bounds for labor and speeding
@@ -85,6 +85,7 @@ def simulate_society(
     income_utility_factor,
     labor_disutility_factor,
     speeding_utility_factor,
+    vsl,
 ):
     try:
         agents = [
@@ -114,6 +115,7 @@ def simulate_society(
                     death_prob,
                     ubi,
                     tax_rate,
+                    vsl,
                 )
                 agent.labor_supply = np.clip(agent.labor_supply, 0, 1)
                 agent.speeding = np.clip(agent.speeding, 0, 1)
@@ -131,7 +133,7 @@ def simulate_society(
                         death_prob,
                         ubi,
                         tax_rate,
-                        vsl=1e7,
+                        vsl,
                     )
                     for agent in agents
                 )

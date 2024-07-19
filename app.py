@@ -18,6 +18,7 @@ def run_simulation(
     income_utility_factor,
     labor_disutility_factor,
     speeding_utility_factor,
+    vsl,
 ):
     st.write(f"\nOptimizing {name} fine and tax rate...")
     try:
@@ -31,6 +32,7 @@ def run_simulation(
             income_utility_factor,
             labor_disutility_factor,
             speeding_utility_factor,
+            vsl,
         )
     except Exception as e:
         st.write(f"Error in optimization: {e}")
@@ -57,6 +59,7 @@ def run_simulation(
         income_utility_factor,
         labor_disutility_factor,
         speeding_utility_factor,
+        vsl,
     )
 
     if result is None:
@@ -158,6 +161,7 @@ def main():
                     income_utility_factor,
                     labor_disutility_factor,
                     speeding_utility_factor,
+                    vsl,
                 )
             )
 
@@ -178,6 +182,7 @@ def main():
                     income_utility_factor,
                     labor_disutility_factor,
                     speeding_utility_factor,
+                    vsl,
                 )
             )
 

@@ -13,6 +13,7 @@ class ObjectiveFunction:
         income_utility_factor,
         labor_disutility_factor,
         speeding_utility_factor,
+        vsl,
     ):
         self.fine_function = fine_function
         self.incomes = incomes
@@ -22,6 +23,7 @@ class ObjectiveFunction:
         self.income_utility_factor = income_utility_factor
         self.labor_disutility_factor = labor_disutility_factor
         self.speeding_utility_factor = speeding_utility_factor
+        self.vsl = vsl
         self.optimization_history = []
 
     def __call__(self, params):
@@ -47,15 +49,14 @@ class ObjectiveFunction:
                 self.income_utility_factor,
                 self.labor_disutility_factor,
                 self.speeding_utility_factor,
+                self.vsl,
             )
             utility = result["total_utility"]
             print(f"Simulation result: {result}")
             self.optimization_history.append((params, utility))
-            # We're maximizing utility, so return negative for minimization
             return -utility
         except Exception as e:
             print(f"Error in simulate_society: {e}")
-            # Return a large value on error to guide optimization away from problematic params
             return float("inf")
 
 
@@ -69,6 +70,7 @@ def optimize_fine(
     income_utility_factor,
     labor_disutility_factor,
     speeding_utility_factor,
+    vsl,
 ):
     objective = ObjectiveFunction(
         fine_function,
@@ -79,6 +81,7 @@ def optimize_fine(
         income_utility_factor,
         labor_disutility_factor,
         speeding_utility_factor,
+        vsl,
     )
 
     if len(initial_params) == 2:  # Flat fine and tax rate
