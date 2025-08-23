@@ -6,7 +6,9 @@ To ground our analysis in real-world data, we calibrate our model using paramete
 
 Finland's system calculates fines for serious speeding violations (exceeding the limit by more than 20 km/h) using the following formula:
 
-$$\text{Day-fine amount} = \frac{\text{Monthly net income} - €255}{60}$$
+```
+Day-fine amount = (Monthly net income - €255) / 60
+```
 
 The total fine equals the day-fine amount multiplied by the number of day-fines assigned based on violation severity. For our calibration, we focus on the income-dependency structure rather than the severity multiplier.
 
@@ -31,9 +33,12 @@ For the income-based system, we model the Finnish approach as:
 - Basic deduction: €255 monthly (€3,060 annual)
 
 This translates to our model's income-based fine function:
-$$F(y) = \max(200, 0.0167 \times \max(0, y_{monthly} - 255) \times s)$$
 
-where $y_{monthly}$ is monthly income and $s$ is the severity factor.
+```
+F(y) = max(200, 0.0167 × max(0, y_monthly - 255) × s)
+```
+
+where `y_monthly` is monthly income and `s` is the severity factor.
 
 ### Behavioral Parameters
 
