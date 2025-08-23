@@ -12,27 +12,17 @@ Policymakers considering income-based fines should account for these labor suppl
 
 ### Alternative Approaches to Equity
 
-If the goal is to avoid disproportionate burden on low-income violators, several alternatives to income-based fines merit consideration:
+If the goal is to avoid disproportionate burden on low-income violators, several alternatives to income-based fines merit consideration. Payment plans and fine forgiveness programs could allow low-income violators to pay fines in installments or qualify for reduction based on financial hardship, without linking the fine amount directly to income. This approach preserves the deterrent effect while providing relief where needed.
 
-1. **Payment plans and fine forgiveness**: Allow low-income violators to pay fines in installments or qualify for reduction based on financial hardship, without linking the fine amount directly to income.
+Community service options represent another promising alternative, permitting violators to discharge fines through community service at a standardized hourly rate, effectively creating an income-neutral time penalty. Such systems have been successfully implemented in several jurisdictions and avoid the labor market distortions we identify. Point systems with income-independent consequences could focus deterrence through license points and driving restrictions rather than monetary penalties, though these may have their own distributional consequences if driving is more essential for certain income groups.
 
-2. **Community service options**: Permit violators to discharge fines through community service at a standardized hourly rate, effectively creating an income-neutral time penalty.
-
-3. **Point systems with income-independent consequences**: Focus deterrence through license points and driving restrictions rather than monetary penalties.
-
-4. **Targeted subsidies**: Maintain flat fines but provide means-tested subsidies for transportation safety equipment (e.g., newer vehicles with better safety features) to address the root causes of differential violation rates.
+Finally, targeted subsidies could maintain flat fines while providing means-tested support for transportation safety equipment, such as newer vehicles with better safety features, to address the root causes of differential violation rates. This approach tackles the problem at its source rather than adjusting penalties after the fact.
 
 ### International Lessons
 
-Countries with income-based fine systems, particularly Finland, have maintained public support despite occasional high-profile cases of enormous fines for wealthy individuals. Several factors may explain why these systems persist despite the efficiency concerns we identify:
+Countries with income-based fine systems, particularly Finland, have maintained public support despite occasional high-profile cases of enormous fines for wealthy individuals. Several factors may explain why these systems persist despite the efficiency concerns we identify. Nordic countries may place higher weight on equality relative to efficiency compared to the United States, reflecting different social preferences shaped by historical and cultural factors. Additionally, lower baseline inequality in these societies means the range of fine amounts is compressed, potentially reducing labor supply distortions to manageable levels.
 
-1. **Different social preferences**: Nordic countries may place higher weight on equality relative to efficiency compared to the United States.
-
-2. **Lower baseline inequality**: In more equal societies, the range of fine amounts is compressed, reducing labor supply distortions.
-
-3. **Comprehensive welfare states**: Extensive social insurance may reduce the perceived cost of labor supply distortions.
-
-4. **Cultural factors**: Higher baseline compliance and trust in government may reduce both violation rates and enforcement costs.
+The presence of comprehensive welfare states in countries with income-based fines may also reduce the perceived cost of labor supply distortions. When citizens receive substantial benefits regardless of income, the marginal value of additional earnings may be lower, making labor supply less elastic. Furthermore, cultural factors such as higher baseline compliance and trust in government may reduce both violation rates and enforcement costs, making the system more viable. These contextual factors suggest that the optimal fine structure may vary across countries based on their institutional and cultural characteristics.
 
 ## Limitations and Robustness
 

@@ -4,9 +4,9 @@ author: "Author Name"
 copyright: "2024"
 logo: ""
 
-# Force re-execution of notebooks on each build
+# Don't execute notebooks (they have saved outputs)
 execute:
-  execute_notebooks: force
+  execute_notebooks: "off"
   timeout: 600
   allow_errors: false
 
@@ -17,7 +17,7 @@ latex:
 
 # Information about where the book exists on the web
 repository:
-  url: https://github.com/yourusername/traffic-fine-sim
+  url: https://github.com/MaxGhenis/traffic-fine-sim
   path_to_book: paper
   branch: main
 
