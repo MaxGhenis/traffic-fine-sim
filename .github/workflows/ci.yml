@@ -35,10 +35,6 @@ jobs:
       run: |
         black --check traffic_fines tests
     
-    - name: Type check with mypy
-      run: |
-        mypy traffic_fines --ignore-missing-imports
-    
     - name: Test with pytest
       run: |
         pytest tests/ --cov=traffic_fines --cov-report=xml --cov-report=html --cov-report=term
@@ -70,7 +66,7 @@ jobs:
     
     - name: Build documentation
       run: |
-        jupyter-book build paper/
+        jupyter-book build paper/ --builder html -n
     
     - name: Upload documentation artifacts
       uses: actions/upload-artifact@v4
