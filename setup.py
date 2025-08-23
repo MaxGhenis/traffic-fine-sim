@@ -19,9 +19,9 @@ setup(
         "Topic :: Scientific/Engineering :: Information Analysis",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
     ],
-    python_requires=">=3.12",
+    python_requires=">=3.13",
     install_requires=[
         "numpy>=1.20.0",
         "scipy>=1.7.0",
