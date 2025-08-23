@@ -5,6 +5,7 @@ chapters:
 - file: 01_introduction
 - file: 02_literature_review
 - file: 03_theoretical_model
+- file: 04_calibration
 - file: 04_simulation_methodology
 - file: 05_results
 - file: 06_discussion
