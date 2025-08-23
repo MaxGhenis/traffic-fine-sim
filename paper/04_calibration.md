@@ -72,6 +72,18 @@ We note that Finland's institutional context differs from other potential adopte
 
 These factors suggest that the optimal degree of income-basedness may be higher in Finland than in countries with greater inequality, lower institutional trust, or weaker safety nets.
 
+## Optimal Income Gradients: Three Benchmarks
+
+Our calibrated model allows us to compare three different income gradients for fines:
+
+1. **Deterrence-only optimum (no LSR)**: When we ignore labor supply responses and focus solely on achieving uniform deterrence across income levels, the optimal fine gradient is approximately 2.5% of monthly income. This steep gradient reflects the declining marginal utility of income - higher earners need proportionally larger fines to achieve the same deterrent effect.
+
+2. **Current Finnish policy**: Finland sets fines at 1.67% of monthly income (1/60), which represents a compromise between deterrence objectives and practical/political constraints. This gradient is already 33% lower than the pure deterrence optimum.
+
+3. **Full optimum (with LSR)**: When labor supply responses are incorporated, the optimal gradient falls dramatically to just 0.5% of monthly income. This represents an 80% reduction from the deterrence-only optimum and is 70% below current Finnish policy.
+
+The large gap between these benchmarks illustrates the quantitative importance of labor supply considerations. Ignoring these effects would lead policymakers to set income gradients that are far too steep from a total welfare perspective.
+
 ## Alternative Calibrations
 
 To test robustness, we also consider:
