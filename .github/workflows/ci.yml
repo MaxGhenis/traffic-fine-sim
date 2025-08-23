@@ -37,15 +37,7 @@ jobs:
     
     - name: Test with pytest
       run: |
-        pytest tests/ --cov=traffic_fines --cov-report=xml --cov-report=html --cov-report=term
-    
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
+        pytest tests/ -v
 
   build-docs:
     runs-on: ubuntu-latest
