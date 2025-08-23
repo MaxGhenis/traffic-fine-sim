@@ -73,7 +73,7 @@ jobs:
         jupyter-book build paper/
     
     - name: Upload documentation artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: documentation
         path: paper/_build/html/
