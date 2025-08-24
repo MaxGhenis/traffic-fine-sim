@@ -9,6 +9,7 @@ chapters:
 - file: 04_simulation_methodology
 - file: 05_results
 - file: 06_discussion
+- file: 08_broader_implications
 - file: 07_conclusion
 - file: appendix_code
 - file: appendix_robustness
