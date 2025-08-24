@@ -4,19 +4,19 @@ The analysis of income-based traffic fines sits at the intersection of several e
 
 ## Optimal Taxation and Behavioral Responses
 
-The modern theory of optimal taxation, pioneered by Mirrlees (1971) and refined by Diamond and Mirrlees (1971), provides the theoretical foundation for understanding how income-linked policies affect welfare. Saez (2001) demonstrated that behavioral responses to taxation can be summarized through the elasticity of taxable income (ETI), a sufficient statistic for welfare analysis under certain conditions.
+The modern theory of optimal taxation, pioneered by {cite}`mirrlees1971` and refined by Diamond and Mirrlees (1971), provides the theoretical foundation for understanding how income-linked policies affect welfare. Saez (2001) demonstrated that behavioral responses to taxation can be summarized through the elasticity of taxable income (ETI), a sufficient statistic for welfare analysis under certain conditions.
 
-Feldstein (1999) emphasized that the ETI captures all behavioral margins—labor supply, tax avoidance, and evasion—making it particularly relevant for our context where individuals can respond to income-based fines through multiple channels. Recent estimates suggest ETI values ranging from 0.12 to 0.40 for most populations (Saez, Slemrod, and Giertz, 2012), with higher values for top earners who have greater flexibility in their labor supply decisions.
+{cite}`feldstein1999` emphasized that the ETI captures all behavioral margins—labor supply, tax avoidance, and evasion—making it particularly relevant for our context where individuals can respond to income-based fines through multiple channels. Recent estimates suggest ETI values ranging from 0.12 to 0.40 for most populations {citep}`saez2012`, with higher values for top earners who have greater flexibility in their labor supply decisions.
 
 The concept of effective marginal tax rates (EMTRs) has been extensively studied in the context of transfer programs. Maag et al. (2012) show how benefit phase-outs create implicit taxes that can exceed 100% for low-income families. Our contribution extends this literature by demonstrating that regulatory penalties can similarly function as implicit taxes, with income-based traffic fines representing a previously unexamined source of EMTR variation.
 
 ## Economics of Traffic Enforcement
 
-The economic analysis of traffic enforcement began with Becker's (1968) seminal work on the economics of crime, which established the framework of optimal deterrence through expected penalties. Polinsky and Shavell (1979) refined this approach, showing that optimal fines should generally equal the harm caused by violations when enforcement is costly.
+The economic analysis of traffic enforcement began with {cite}`becker1968`'s seminal work on the economics of crime, which established the framework of optimal deterrence through expected penalties. Polinsky and Shavell (1979) refined this approach, showing that optimal fines should generally equal the harm caused by violations when enforcement is costly.
 
 Specific to traffic violations, several papers have examined the deterrent effects of fines and enforcement intensity. Bourgeon and Picard (2007) develop a model where drivers choose both whether to violate traffic rules and how much care to exercise, finding that fine structures affect both margins. DeAngelo and Hansen (2014) use a natural experiment from Oregon to show that traffic fatalities increase when police enforcement decreases, confirming the importance of deterrence.
 
-The empirical literature on income-based fines is limited but growing. Makowsky and Stratmann (2009) find evidence that municipalities with greater fiscal stress issue more traffic tickets, suggesting that revenue considerations influence enforcement. More directly relevant, a recent working paper by Kaila (2023) exploits Finland's income-based fine system to estimate behavioral responses, finding that drivers reduce speeding when their incomes (and thus potential fines) increase.
+The empirical literature on income-based fines is limited but growing. Makowsky and Stratmann (2009) find evidence that municipalities with greater fiscal stress issue more traffic tickets, suggesting that revenue considerations influence enforcement. More directly relevant, a recent working paper by {cite}`kaila2024` exploits Finland's income-based fine system to estimate behavioral responses, finding that a €200 increase in fine amount reduces reoffending by 15% over six months.
 
 ## Distributional Concerns and Fairness
 
@@ -26,7 +26,7 @@ However, the economics literature offers a more nuanced view of fairness in pena
 
 ## Labor Supply Responses to Marginal Tax Rates
 
-The labor supply literature provides crucial parameters for our analysis. Chetty (2012) synthesizes evidence on labor supply elasticities, distinguishing between intensive margin responses (hours worked) and extensive margin responses (participation). For prime-age workers, intensive margin elasticities typically range from 0.1 to 0.3, while participation elasticities can be substantially higher, especially for secondary earners.
+The labor supply literature provides crucial parameters for our analysis. {cite}`chetty2012` synthesizes evidence on labor supply elasticities, distinguishing between intensive margin responses (hours worked) and extensive margin responses (participation). For prime-age workers, intensive margin elasticities typically range from 0.1 to 0.3, while participation elasticities can be substantially higher, especially for secondary earners.
 
 Keane (2011) emphasizes the importance of human capital accumulation in understanding labor supply responses, noting that career concerns can amplify the long-run effects of tax changes. This dynamic consideration suggests that our static model may underestimate the costs of income-based fines for young professionals whose current work effort affects future earning potential.
 
