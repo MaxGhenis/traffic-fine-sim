@@ -56,7 +56,9 @@ Several limitations of our analysis point to directions for future research:
 
 While we focus on traffic fines, our framework applies broadly to income-based pricing of negative externalities. Consider carbon taxes, pollution penalties, water use restrictions, or public health violation fines—in each case, policymakers face the same fundamental trade-off between achieving uniform deterrence across income levels and avoiding labor supply distortions.
 
-The key insight is that externality pricing should target the externality, not serve redistributive goals. When penalties for social harms become linked to income, they transform from Pigouvian corrections into implicit taxes, with all the associated deadweight losses. The tax system, designed explicitly for redistribution, can achieve equity goals more efficiently than distorting every policy instrument toward redistributive ends.
+The key insight is that the optimal income-gradient for externality pricing is substantially lower than what pure deterrence or equity considerations would suggest. In our calibration, we find an optimal gradient of 0.5% of monthly income—positive but much lower than both current policy (1.67%) and the deterrence-optimal level without labor supply considerations (2.5%). This suggests some role for income-based differentiation, but far less than commonly implemented or proposed.
+
+The reduction occurs because income-based penalties create implicit marginal tax rates that compound existing tax distortions. The deadweight loss from these compounded distortions grows quadratically, making steep income gradients inefficient even if they achieve better deterrence patterns. While not eliminating income-based pricing entirely, this mechanism severely limits its optimal scope.
 
 This principle extends beyond penalties to positive prices as well. Should congestion pricing vary by income? Should park entrance fees be means-tested? Should carbon credits cost more for the wealthy? Our analysis suggests that uniform pricing generally dominates, with redistribution handled through the tax-and-transfer system rather than through price discrimination in every market.
 

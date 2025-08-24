@@ -28,6 +28,27 @@ The COVID-19 pandemic raised questions about penalty design for public health vi
 
 These cases involve an additional complexity: the externality (disease transmission) may itself vary with income if higher earners have jobs requiring more interpersonal contact or travel.
 
+## When Is the Optimal Income Gradient Zero?
+
+While our baseline calibration finds a positive but small optimal gradient (0.5% of monthly income), several conditions could drive the optimal gradient to zero or even negative:
+
+**Very high labor supply elasticity**: If labor supply elasticity exceeds 0.5-0.7, the deadweight loss from income-based penalties may completely offset any deterrence benefits, making flat fines optimal.
+
+**High baseline marginal tax rates**: In jurisdictions where many individuals already face MTRs above 50%, adding any income-based component could push total rates into severely distortionary territory.
+
+**No correlation between income and externality propensity**: If high and low earners are equally likely to speed (or pollute, etc.), then income-based differentiation provides no deterrence benefit while still creating labor distortions.
+
+**High administrative costs**: If verifying income and calculating appropriate penalties is costly, these costs could exceed the modest welfare gains from mild income-gradients.
+
+**Behavioral responses**: If income-based penalties are less salient or generate resentment that reduces compliance, flat penalties might achieve better outcomes.
+
+Conversely, the optimal gradient increases when:
+- Labor supply is highly inelastic
+- Baseline tax rates are low
+- The externality-generating behavior strongly correlates with income
+- Society places high weight on distributional concerns
+- Administrative systems can efficiently implement income-verification
+
 ## General Principles for Income-Based Externality Pricing
 
 Our analysis yields several principles for designing income-based penalties:
