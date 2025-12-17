@@ -29,6 +29,7 @@ class Society:
         fine: FineStructure,
         tax_rate: float,
         death_prob_factor: float = DEFAULT_PARAMS.death_prob_factor,
+        externality_factor: float = DEFAULT_PARAMS.externality_factor,
     ):
         """Initialize society.
 
@@ -37,11 +38,15 @@ class Society:
             fine: Fine structure to use
             tax_rate: Income tax rate
             death_prob_factor: Factor to convert avg speeding to death probability
+            externality_factor: Social cost per unit of aggregate speeding^2.
+                Speeding creates negative externalities (harm to others).
+                Externality cost = externality_factor * avg_speeding^2 * n_agents
         """
         self.agents = agents
         self.fine = fine
         self.tax_rate = tax_rate
         self.death_prob_factor = death_prob_factor
+        self.externality_factor = externality_factor
 
         # Results storage
         self._results: Dict[str, Any] | None = None
@@ -123,10 +128,18 @@ class Society:
 
             prev_total_utility = total_utility
 
+        # Calculate externality cost
+        # Speeding creates harm to others (pedestrians, other drivers)
+        # Externality = factor * avg_speeding^2 * n_agents
+        externality_cost = self.externality_factor * (avg_speeding ** 2) * n_agents
+        social_welfare = total_utility - externality_cost
+
         # Store results
         self._agent_results = agent_results
         self._results = {
             "total_utility": total_utility,
+            "social_welfare": social_welfare,
+            "externality_cost": externality_cost,
             "avg_speeding": avg_speeding,
             "total_fines": total_fines,
             "total_taxes": total_taxes,

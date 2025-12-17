@@ -10,18 +10,25 @@ from scipy.optimize import minimize_scalar, minimize
 from traffic_fines.core.agent import Agent
 from traffic_fines.core.society import Society
 from traffic_fines.core.fines import FlatFine, IncomeBasedFine
+from traffic_fines.utils.parameters import DEFAULT_PARAMS
 
 
 class WelfareOptimizer:
     """Optimizer for finding welfare-maximizing fine parameters."""
 
-    def __init__(self, agents: List[Agent]):
+    def __init__(
+        self,
+        agents: List[Agent],
+        externality_factor: float = DEFAULT_PARAMS.externality_factor,
+    ):
         """Initialize optimizer.
 
         Args:
             agents: List of agents to use in simulations
+            externality_factor: Social cost of speeding externality
         """
         self.agents = agents
+        self.externality_factor = externality_factor
         self._history: List[Dict[str, Any]] = []
 
     def _evaluate_flat_fine(
@@ -34,7 +41,7 @@ class WelfareOptimizer:
             tax_rate: Tax rate
 
         Returns:
-            Negative total welfare (for minimization)
+            Negative social welfare (for minimization)
         """
         # Create fresh agents for each evaluation
         agents = [
@@ -48,18 +55,19 @@ class WelfareOptimizer:
         ]
 
         fine = FlatFine(amount=fine_amount)
-        society = Society(agents, fine, tax_rate)
+        society = Society(agents, fine, tax_rate, externality_factor=self.externality_factor)
         results = society.simulate(max_iterations=20)
 
         self._history.append(
             {
                 "type": "flat",
                 "fine_amount": fine_amount,
-                "welfare": results["total_utility"],
+                "welfare": results["social_welfare"],
+                "speeding": results["avg_speeding"],
             }
         )
 
-        return -results["total_utility"]
+        return -results["social_welfare"]
 
     def _evaluate_income_based_fine(
         self, fine_rate: float, tax_rate: float
@@ -71,7 +79,7 @@ class WelfareOptimizer:
             tax_rate: Tax rate
 
         Returns:
-            Negative total welfare (for minimization)
+            Negative social welfare (for minimization)
         """
         # Create fresh agents for each evaluation
         agents = [
@@ -85,18 +93,19 @@ class WelfareOptimizer:
         ]
 
         fine = IncomeBasedFine(rate=fine_rate)
-        society = Society(agents, fine, tax_rate)
+        society = Society(agents, fine, tax_rate, externality_factor=self.externality_factor)
         results = society.simulate(max_iterations=20)
 
         self._history.append(
             {
                 "type": "income_based",
                 "fine_rate": fine_rate,
-                "welfare": results["total_utility"],
+                "welfare": results["social_welfare"],
+                "speeding": results["avg_speeding"],
             }
         )
 
-        return -results["total_utility"]
+        return -results["social_welfare"]
 
     def optimize_flat_fine(
         self,

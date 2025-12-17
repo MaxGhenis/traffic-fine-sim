@@ -22,6 +22,7 @@ class Parameters:
     # Safety
     vsl: float = 3_600_000.0  # EU recommendation for Finland (EUR)
     death_prob_factor: float = 0.0001  # Scales avg speeding to death probability
+    externality_factor: float = 10.0  # Social cost of speeding (harm to others)
 
     # Tax system
     tax_rate: float = 0.30  # Base income tax rate
@@ -45,6 +46,7 @@ class Parameters:
             "speeding_utility": self.speeding_utility,
             "vsl": self.vsl,
             "death_prob_factor": self.death_prob_factor,
+            "externality_factor": self.externality_factor,
             "tax_rate": self.tax_rate,
             "flat_fine_amount": self.flat_fine_amount,
             "income_fine_rate": self.income_fine_rate,

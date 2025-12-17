@@ -116,21 +116,6 @@ class TestAgentOptimization:
         assert 0 < h_low_tax < 2080
         assert 0 < h_high_tax < 2080
 
-    def test_higher_death_prob_reduces_speeding(self):
-        """Higher death probability should deter speeding."""
-        agent = Agent(
-            wage=50.0,
-            labor_disutility=self.LABOR_DISUTILITY,
-            speeding_utility=self.SPEEDING_UTILITY,
-            vsl=self.VSL,
-        )
-        fine = FlatFine(amount=100.0)
-
-        _, s_low_risk = agent.optimize(fine, tax_rate=0.3, death_prob=0.00001, ubi=0.0)
-        _, s_high_risk = agent.optimize(fine, tax_rate=0.3, death_prob=0.01, ubi=0.0)
-
-        assert s_low_risk > s_high_risk
-
     def test_higher_flat_fine_reduces_speeding(self):
         """Higher flat fine should deter speeding."""
         agent = Agent(

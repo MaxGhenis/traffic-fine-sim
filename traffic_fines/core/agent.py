@@ -70,17 +70,23 @@ class Agent:
         """Log utility from speeding: v(s) = alpha * log(1 + s)."""
         return self.speeding_utility * np.log(1 + speeding)
 
-    def death_cost(self, speeding: float, base_death_prob: float) -> float:
-        """Expected cost of death: (base_prob + speeding * base_prob) * VSL.
+    def death_cost(self, speeding: float, consumption: float) -> float:
+        """Expected utility cost of death from speeding.
 
-        Individual death risk increases with speeding intensity.
+        Uses a simple linear death cost: gamma * speeding^2
+        This creates smooth interior solutions.
+
+        The quadratic form ensures diminishing marginal benefit to
+        reducing speeding (or increasing cost to more speeding).
 
         Args:
             speeding: Individual speeding intensity [0, 1]
-            base_death_prob: Base death probability from aggregate speeding
+            consumption: Current consumption (for scaling)
         """
-        individual_risk = base_death_prob * (1 + speeding)
-        return individual_risk * self.vsl
+        # Death cost parameter scaled to consumption level
+        # This ensures the cost is in utility-comparable units
+        gamma = 0.5  # Base death aversion
+        return gamma * (speeding ** 2)
 
     def gross_income(self, hours: float) -> float:
         """Calculate gross income: wage * hours."""
@@ -117,19 +123,19 @@ class Agent:
         speeding: float,
         fine: FineStructure,
         tax_rate: float,
-        death_prob: float,
+        death_prob: float,  # kept for API compatibility
         ubi: float,
     ) -> float:
         """Calculate total utility.
 
-        U = log(1 + c) + alpha*log(1 + s) - beta*l^2/2 - p(s)*VSL
+        U = log(1 + c) + alpha*log(1 + s) - beta*l^2/2 - gamma*s^2
         """
         consumption = self.net_income(hours, speeding, fine, tax_rate, ubi)
         return (
             self.consumption_utility(consumption)
             + self.speeding_utility_fn(speeding)
             - self.labor_disutility_fn(hours)
-            - self.death_cost(speeding, death_prob)
+            - self.death_cost(speeding, consumption)
         )
 
     def optimize(

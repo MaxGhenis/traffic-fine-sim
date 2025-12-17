@@ -101,6 +101,40 @@ class TestSocietyWelfare:
         # Total utility should be positive and reasonable
         assert results["total_utility"] > 0
 
+    def test_externality_reduces_welfare(self):
+        """Externality from speeding should reduce social welfare."""
+        agents = [Agent(wage=w, labor_disutility=25.0) for w in [30.0, 50.0, 80.0]]
+        fine = FlatFine(amount=0.0)  # No fines, high speeding
+
+        society_no_ext = Society(agents, fine, tax_rate=0.3, externality_factor=0.0)
+        society_ext = Society(agents, fine, tax_rate=0.3, externality_factor=10.0)
+
+        results_no_ext = society_no_ext.simulate()
+        results_ext = society_ext.simulate()
+
+        # Externality should reduce welfare
+        assert results_ext["social_welfare"] < results_no_ext["social_welfare"]
+        assert results_ext["externality_cost"] > 0
+
+    def test_fines_improve_welfare_with_externality(self):
+        """Fines should improve welfare when speeding creates externalities."""
+        # With externalities, fines that reduce speeding create social gains
+        agents_no_fine = [Agent(wage=w, labor_disutility=25.0) for w in [30.0, 50.0, 80.0]]
+        agents_fine = [Agent(wage=w, labor_disutility=25.0) for w in [30.0, 50.0, 80.0]]
+
+        no_fine = FlatFine(amount=0.0)
+        with_fine = FlatFine(amount=5000.0)
+
+        society_no_fine = Society(agents_no_fine, no_fine, tax_rate=0.3, externality_factor=50.0)
+        society_fine = Society(agents_fine, with_fine, tax_rate=0.3, externality_factor=50.0)
+
+        results_no_fine = society_no_fine.simulate()
+        results_fine = society_fine.simulate()
+
+        # Fine should reduce speeding and improve welfare
+        assert results_fine["avg_speeding"] < results_no_fine["avg_speeding"]
+        assert results_fine["social_welfare"] > results_no_fine["social_welfare"]
+
     def test_flat_vs_income_based_produces_different_welfare(self):
         """Different fine structures should produce different welfare."""
         agents_flat = [Agent(wage=w, labor_disutility=25.0) for w in [30.0, 50.0, 80.0]]
