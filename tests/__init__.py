@@ -1,1 +1,1 @@
-"""Test suite for traffic fines simulation framework."""
+"""Tests for traffic_fines package."""

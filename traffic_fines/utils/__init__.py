@@ -1,5 +1,5 @@
-"""Utility functions and default parameters."""
+"""Utility functions and parameters."""
 
-from .parameters import *
-from .income_generation import generate_income_distribution
-from .analysis import calculate_gini, calculate_lorenz_curve
+from traffic_fines.utils.parameters import DEFAULT_PARAMS
+
+__all__ = ["DEFAULT_PARAMS"]

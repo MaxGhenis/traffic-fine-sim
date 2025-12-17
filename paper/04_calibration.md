@@ -22,7 +22,9 @@ Based on the Finnish system and empirical evidence from {cite}`kaila2024`, we ca
 
 3. **Threshold effects**: Fines become income-based only for violations exceeding 20 km/h over the limit. Below this threshold, flat fines apply (€200 for cars, €100 for mopeds).
 
-4. **Income distribution**: Finland's relatively compressed income distribution (Gini coefficient ≈ 0.27) differs from more unequal societies, affecting the welfare implications of income-based fines.
+4. **Backward-looking income assessment**: Critically, Finnish day-fines are calculated using the **previous year's** tax returns, not current income {cite}`kaila2024`. This institutional feature reduces the contemporaneous labor supply channel emphasized in our model—current work decisions do not affect current fine liability. We address this in Section 5.5 by comparing contemporaneous versus backward-looking income assessment systems.
+
+5. **Income distribution**: Finland's relatively compressed income distribution (Gini coefficient ≈ 0.27) differs from more unequal societies, affecting the welfare implications of income-based fines.
 
 ## Calibrated Model Parameters
 
@@ -44,9 +46,15 @@ where `y_monthly` is monthly income and `s` is the severity factor.
 
 **Speeding elasticity**: Based on {cite}`kaila2024`'s findings, we calibrate the utility from speeding to generate an elasticity of -0.075 in the short run. This relatively low elasticity suggests that speeding behavior is not highly responsive to fine amounts, consistent with information frictions or habitual behavior.
 
-**Labor supply elasticity**: While Finland-specific estimates are limited, we use the consensus range from the labor economics literature of 0.2-0.4 for the intensive margin elasticity. Finland's high labor force participation suggests using the lower end of this range (0.25) for our baseline.
+**Labor supply elasticity**: We calibrate the labor disutility parameter β = 25.0 to generate Frisch elasticities in the range 0.1-0.3, consistent with Finnish empirical estimates and the broader labor economics literature {cite}`chetty2012,keane2011`. With our utility specification U = log(1+c) - β·l²/2, the Frisch elasticity is:
 
-**Value of Statistical Life (VSL)**: We adopt the European Commission's recommended VSL of €3.6 million for Finland, adjusted to our model's units.
+$$\epsilon^F = \frac{w(1-\tau)}{\beta \cdot l \cdot (1+c)}$$
+
+At median wages (€25/hour), typical hours (1500/year), and 40% tax rate, this yields ε ≈ 0.25, consistent with Finnish estimates. We validate this calibration in Section 5.1 by computing implied elasticities across the income distribution.
+
+**Value of Statistical Life (VSL)**: We adopt the European Commission's recommended VSL of €3.6 million for Finland {cite}`eu_vsl_2014`, adjusted to our model's units.
+
+**Externality factor**: We ground the externality parameter in Finnish crash statistics rather than calibrating to fine levels (avoiding circular calibration). With ~220 annual road fatalities, 30% attributable to speeding, and 40% involving external victims (non-speeders), the annual external cost is approximately €95 million (26 external deaths × €3.6M VSL). We use a conservative externality factor of 0.2, representing approximately 10% of the statistically-implied value, to account for uncertainty in the speeding-crash relationship. Sensitivity analysis in Section 5.6 examines results across a wide range of externality values.
 
 ### Tax Environment
 

@@ -1,247 +1,219 @@
-"""Society simulation module."""
+"""Society simulation with equilibrium dynamics.
 
+Simulates a society of heterogeneous agents who optimize their labor supply
+and speeding decisions under different fine structures.
+"""
+
+from typing import Dict, Any, List, Optional
 import numpy as np
-from typing import List, Dict, Any, Optional
-from .agent import Agent
-from .fines import FineStructure
+
+from traffic_fines.core.agent import Agent
+from traffic_fines.core.fines import FineStructure
+from traffic_fines.utils.parameters import DEFAULT_PARAMS
 
 
 class Society:
-    """
-    Simulates a society of agents making labor and speeding decisions.
+    """Society of agents with equilibrium simulation.
 
-    The society evolves through iterations where:
-    1. Agents optimize their decisions given current conditions
-    2. Death probability updates based on aggregate speeding
-    3. UBI is calculated from collected fines and taxes
-    4. Process repeats until convergence or max iterations
+    Simulation iterates:
+    1. Agents optimize given current UBI and death probability
+    2. Collect fines and taxes
+    3. Redistribute as UBI
+    4. Update death probability from aggregate speeding
+    5. Repeat until convergence
     """
 
     def __init__(
         self,
         agents: List[Agent],
-        fine_structure: FineStructure,
-        tax_rate: float = 0.3,
-        death_prob_factor: float = 0.0001,
-        vsl: float = 10_000_000,
-        convergence_threshold: float = 0.01,
+        fine: FineStructure,
+        tax_rate: float,
+        death_prob_factor: float = DEFAULT_PARAMS.death_prob_factor,
+        externality_factor: float = DEFAULT_PARAMS.externality_factor,
     ):
-        """
-        Initialize society simulation.
+        """Initialize society.
 
-        Parameters
-        ----------
-        agents : List[Agent]
-            List of agents in the society
-        fine_structure : FineStructure
-            Fine system to use (flat or income-based)
-        tax_rate : float
-            Marginal tax rate on labor income
-        death_prob_factor : float
-            Factor converting average speeding to death probability
-        vsl : float
-            Value of statistical life
-        convergence_threshold : float
-            Threshold for convergence check
+        Args:
+            agents: List of Agent objects
+            fine: Fine structure to use
+            tax_rate: Income tax rate
+            death_prob_factor: Factor to convert avg speeding to death probability
+            externality_factor: Social cost per unit of aggregate speeding^2.
+                Speeding creates negative externalities (harm to others).
+                Externality cost = externality_factor * avg_speeding^2 * n_agents
         """
         self.agents = agents
-        self.fine_structure = fine_structure
+        self.fine = fine
         self.tax_rate = tax_rate
         self.death_prob_factor = death_prob_factor
-        self.vsl = vsl
-        self.convergence_threshold = convergence_threshold
+        self.externality_factor = externality_factor
 
-        # State variables
-        self.ubi = 0.0
-        self.death_prob = 0.0
-        self.total_utility = 0.0
-        self.iteration = 0
-        self.history = []
+        # Results storage
+        self._results: Dict[str, Any] | None = None
+        self._agent_results: List[Dict[str, Any]] | None = None
 
-    def simulate(self, max_iterations: int = 100) -> Dict[str, Any]:
+    def simulate(
+        self,
+        max_iterations: int = DEFAULT_PARAMS.max_iterations,
+        convergence_threshold: float = DEFAULT_PARAMS.convergence_threshold,
+    ) -> Dict[str, Any]:
+        """Run equilibrium simulation.
+
+        Args:
+            max_iterations: Maximum iterations before stopping
+            convergence_threshold: Utility change threshold for convergence
+
+        Returns:
+            Dict with simulation results
         """
-        Run society simulation until convergence or max iterations.
+        n_agents = len(self.agents)
 
-        Parameters
-        ----------
-        max_iterations : int
-            Maximum number of iterations
+        # Initial values
+        ubi = 0.0
+        death_prob = self.death_prob_factor * 0.5  # Initial guess
 
-        Returns
-        -------
-        Dict[str, Any]
-            Simulation results including final utilities, behaviors, etc.
-        """
-        previous_utility = -np.inf
+        prev_total_utility = float("-inf")
+        converged = False
 
-        for self.iteration in range(max_iterations):
-            # Update death probability based on current speeding
-            avg_speeding = np.mean([a.speeding for a in self.agents])
-            self.death_prob = self.death_prob_factor * avg_speeding
-
-            # Each agent optimizes given current conditions
+        for iteration in range(max_iterations):
+            # Each agent optimizes
+            total_utility = 0.0
+            total_speeding = 0.0
             total_fines = 0.0
             total_taxes = 0.0
 
+            agent_results = []
             for agent in self.agents:
-                labor, speeding, utility = agent.optimize(
-                    lambda income: self.fine_structure.calculate_fine(income),
-                    self.death_prob,
-                    self.ubi,
-                    self.tax_rate,
-                    self.vsl,
+                hours, speeding = agent.optimize(
+                    self.fine, self.tax_rate, death_prob, ubi
                 )
 
-                # Collect fines and taxes
-                gross_income = agent.wage_rate * agent.labor_hours
-                total_fines += agent.fine_paid
-                total_taxes += gross_income * self.tax_rate
+                gross_income = agent.gross_income(hours)
+                tax_paid = gross_income * self.tax_rate
+                fine_paid = self.fine.calculate(gross_income, speeding)
+                net_income = agent.net_income(
+                    hours, speeding, self.fine, self.tax_rate, ubi
+                )
+                utility = agent.total_utility(
+                    hours, speeding, self.fine, self.tax_rate, death_prob, ubi
+                )
 
-            # Update UBI from redistribution
-            self.ubi = (total_fines + total_taxes) / len(self.agents)
+                total_utility += utility
+                total_speeding += speeding
+                total_fines += fine_paid
+                total_taxes += tax_paid
 
-            # Calculate total utility
-            self.total_utility = sum(a.utility for a in self.agents)
+                agent_results.append(
+                    {
+                        "wage": agent.wage,
+                        "hours": hours,
+                        "speeding": speeding,
+                        "gross_income": gross_income,
+                        "net_income": net_income,
+                        "tax_paid": tax_paid,
+                        "fine_paid": fine_paid,
+                        "utility": utility,
+                    }
+                )
 
-            # Store history
-            self.history.append(
-                {
-                    "iteration": self.iteration,
-                    "total_utility": self.total_utility,
-                    "avg_speeding": avg_speeding,
-                    "avg_labor": np.mean([a.labor_hours for a in self.agents]),
-                    "ubi": self.ubi,
-                    "death_prob": self.death_prob,
-                    "total_fines": total_fines,
-                    "total_taxes": total_taxes,
-                }
-            )
+            # Update UBI and death probability
+            avg_speeding = total_speeding / n_agents
+            ubi = (total_fines + total_taxes) / n_agents
+            death_prob = self.death_prob_factor * avg_speeding
 
-            # Check for convergence
-            if abs(self.total_utility - previous_utility) < self.convergence_threshold:
-                print(f"Converged after {self.iteration + 1} iterations")
+            # Check convergence
+            if abs(total_utility - prev_total_utility) < convergence_threshold:
+                converged = True
                 break
 
-            previous_utility = self.total_utility
+            prev_total_utility = total_utility
 
-        return self._compile_results()
+        # Calculate externality cost
+        # Speeding creates harm to others (pedestrians, other drivers)
+        # Externality = factor * avg_speeding^2 * n_agents
+        externality_cost = self.externality_factor * (avg_speeding**2) * n_agents
+        social_welfare = total_utility - externality_cost
 
-    def _compile_results(self) -> Dict[str, Any]:
-        """Compile simulation results."""
-        # Income distribution analysis
-        incomes = [a.potential_income for a in self.agents]
-        income_quintiles = np.percentile(incomes, [20, 40, 60, 80])
-
-        # Behavioral patterns by income group
-        income_groups = {"bottom_20": [], "middle_60": [], "top_20": []}
-
-        for agent in self.agents:
-            if agent.potential_income <= income_quintiles[0]:
-                group = "bottom_20"
-            elif agent.potential_income >= income_quintiles[3]:
-                group = "top_20"
-            else:
-                group = "middle_60"
-
-            income_groups[group].append(
-                {
-                    "labor_hours": agent.labor_hours,
-                    "speeding": agent.speeding,
-                    "utility": agent.utility,
-                    "fine_paid": agent.fine_paid,
-                    "effective_mtr": agent.get_effective_mtr(
-                        lambda income: self.fine_structure.calculate_fine(income),
-                        self.tax_rate,
-                    ),
-                }
-            )
-
-        # Calculate group averages
-        group_stats = {}
-        for group, agents_data in income_groups.items():
-            if agents_data:
-                group_stats[group] = {
-                    "avg_labor": np.mean([a["labor_hours"] for a in agents_data]),
-                    "avg_speeding": np.mean([a["speeding"] for a in agents_data]),
-                    "avg_utility": np.mean([a["utility"] for a in agents_data]),
-                    "avg_fine": np.mean([a["fine_paid"] for a in agents_data]),
-                    "avg_effective_mtr": np.mean(
-                        [a["effective_mtr"] for a in agents_data]
-                    ),
-                    "count": len(agents_data),
-                }
-
-        return {
-            "total_utility": self.total_utility,
-            "avg_utility": self.total_utility / len(self.agents),
-            "avg_speeding": np.mean([a.speeding for a in self.agents]),
-            "avg_labor_hours": np.mean([a.labor_hours for a in self.agents]),
-            "avg_labor_supply": np.mean(
-                [a.labor_hours / Agent.WORK_HOURS_PER_YEAR for a in self.agents]
-            ),
-            "ubi": self.ubi,
-            "death_prob": self.death_prob,
-            "iterations": self.iteration + 1,
-            "converged": self.iteration < 99,
-            "income_groups": group_stats,
-            "history": self.history,
-            "agents": self.agents,
+        # Store results
+        self._agent_results = agent_results
+        self._results = {
+            "total_utility": total_utility,
+            "social_welfare": social_welfare,
+            "externality_cost": externality_cost,
+            "avg_speeding": avg_speeding,
+            "total_fines": total_fines,
+            "total_taxes": total_taxes,
+            "ubi": ubi,
+            "death_prob": death_prob,
+            "iterations": iteration + 1,
+            "converged": converged,
         }
 
-    def calculate_welfare_metrics(self) -> Dict[str, float]:
+        return self._results
+
+    def analyze_by_income_group(self) -> Dict[str, Dict[str, float]]:
+        """Analyze results by income groups (bottom 20%, middle 60%, top 20%).
+
+        Returns:
+            Dict with statistics for each income group
         """
-        Calculate various welfare metrics for the society.
+        if self._agent_results is None:
+            raise ValueError("Must run simulate() first")
 
-        Returns
-        -------
-        Dict[str, float]
-            Dictionary of welfare metrics
-        """
-        # Gini coefficient for utility
-        utilities = sorted([a.utility for a in self.agents])
-        n = len(utilities)
-        cumsum = np.cumsum(utilities)
-        gini = (2 * np.sum((i + 1) * u for i, u in enumerate(utilities))) / (
-            n * cumsum[-1]
-        ) - (n + 1) / n
+        # Sort agents by wage
+        sorted_results = sorted(self._agent_results, key=lambda x: x["wage"])
+        n = len(sorted_results)
 
-        # Deadweight loss approximation
-        # Compare to first-best where speeding = 0 and labor is undistorted
-        first_best_utility = 0
-        for agent in self.agents:
-            # First-best: no speeding, no fines, optimal labor given only tax
-            def first_best_labor(hours):
-                gross_income = agent.wage_rate * hours
-                net_income = gross_income * (1 - self.tax_rate) + self.ubi
-                labor_disutility = (
-                    agent.labor_disutility_factor
-                    * (hours**2)
-                    / (2 * Agent.WORK_HOURS_PER_YEAR)
-                )
-                return -(
-                    agent.income_utility_factor * np.log(1 + net_income)
-                    - labor_disutility
-                )
+        # Define groups
+        bottom_20_idx = int(n * 0.2)
+        top_20_idx = int(n * 0.8)
 
-            from scipy.optimize import minimize_scalar
-
-            result = minimize_scalar(
-                first_best_labor,
-                bounds=(0, Agent.WORK_HOURS_PER_YEAR),
-                method="bounded",
-            )
-            optimal_hours = result.x
-            optimal_utility = -result.fun
-            first_best_utility += optimal_utility
-
-        deadweight_loss = first_best_utility - self.total_utility
-
-        return {
-            "total_utility": self.total_utility,
-            "avg_utility": self.total_utility / len(self.agents),
-            "utility_gini": gini,
-            "deadweight_loss": deadweight_loss,
-            "efficiency_ratio": (
-                self.total_utility / first_best_utility if first_best_utility > 0 else 0
-            ),
+        groups = {
+            "bottom_20": sorted_results[:bottom_20_idx],
+            "middle_60": sorted_results[bottom_20_idx:top_20_idx],
+            "top_20": sorted_results[top_20_idx:],
         }
+
+        analysis = {}
+        for group_name, group_data in groups.items():
+            if len(group_data) == 0:
+                continue
+
+            analysis[group_name] = {
+                "avg_hours": np.mean([d["hours"] for d in group_data]),
+                "avg_speeding": np.mean([d["speeding"] for d in group_data]),
+                "avg_net_income": np.mean([d["net_income"] for d in group_data]),
+                "avg_utility": np.mean([d["utility"] for d in group_data]),
+                "avg_fine_paid": np.mean([d["fine_paid"] for d in group_data]),
+            }
+
+        return analysis
+
+    def gini_coefficient(self) -> float:
+        """Calculate Gini coefficient of net income distribution.
+
+        Returns:
+            Gini coefficient in [0, 1]
+        """
+        if self._agent_results is None:
+            raise ValueError("Must run simulate() first")
+
+        incomes = np.array([d["net_income"] for d in self._agent_results])
+        incomes = np.sort(incomes)
+        n = len(incomes)
+
+        # Gini formula
+        index = np.arange(1, n + 1)
+        return (2 * np.sum(index * incomes) - (n + 1) * np.sum(incomes)) / (
+            n * np.sum(incomes)
+        )
+
+    @property
+    def results(self) -> Optional[Dict[str, Any]]:
+        """Return cached simulation results."""
+        return self._results
+
+    @property
+    def agent_results(self) -> Optional[List[Dict[str, Any]]]:
+        """Return cached per-agent results."""
+        return self._agent_results

@@ -1,286 +1,499 @@
-"""Optimization module for finding welfare-maximizing parameters."""
+"""Welfare optimizer for finding optimal fine parameters.
 
+Finds fine parameters that maximize total social welfare.
+"""
+
+from typing import Dict, Any, List, Callable, Optional, Union
 import numpy as np
-from scipy import optimize
-from typing import Callable, Tuple, List, Dict, Any, Optional
-from .society import Society
-from .agent import Agent
-from .fines import FineStructure, FlatFine, IncomeBasedFine
+from scipy.optimize import minimize_scalar, minimize
+
+from traffic_fines.core.agent import Agent
+from traffic_fines.core.society import Society
+from traffic_fines.core.fines import FlatFine, IncomeBasedFine, HybridFine
+from traffic_fines.utils.parameters import DEFAULT_PARAMS
+
+
+def utilitarian_welfare(utilities: np.ndarray) -> float:
+    """Sum of utilities."""
+    return np.sum(utilities)
+
+
+def rawlsian_welfare(utilities: np.ndarray) -> float:
+    """Minimum utility (maximin)."""
+    return np.min(utilities)
+
+
+def atkinson_welfare(utilities: np.ndarray, gamma: float = 1.0) -> float:
+    """Atkinson welfare with inequality aversion parameter gamma.
+
+    Higher gamma means more weight on worse-off individuals.
+    gamma=0 is utilitarian, gamma->inf is Rawlsian.
+    """
+    # Shift utilities to be positive
+    u_shifted = utilities - np.min(utilities) + 1
+    if gamma == 1:
+        return np.sum(np.log(u_shifted))
+    else:
+        return np.sum(u_shifted ** (1 - gamma)) / (1 - gamma)
 
 
 class WelfareOptimizer:
-    """
-    Optimizer for finding welfare-maximizing fine and tax parameters.
-
-    This class implements the social planner's problem of choosing
-    fine structures and tax rates to maximize total social welfare,
-    accounting for behavioral responses including labor supply effects.
-    """
+    """Optimizer for finding welfare-maximizing fine parameters."""
 
     def __init__(
         self,
-        incomes: np.ndarray,
-        fine_structure_class: type,
-        vsl: float = 10_000_000,
-        death_prob_factor: float = 0.0001,
-        income_utility_factor: float = 1.0,
-        labor_disutility_factor: float = 0.5,
-        speeding_utility_factor: float = 0.1,
-        max_iterations: int = 100,
+        agents: List[Agent],
+        externality_factor: float = DEFAULT_PARAMS.externality_factor,
     ):
+        """Initialize optimizer.
+
+        Args:
+            agents: List of agents to use in simulations
+            externality_factor: Social cost of speeding externality
         """
-        Initialize welfare optimizer.
+        self.agents = agents
+        self.externality_factor = externality_factor
+        self._history: List[Dict[str, Any]] = []
 
-        Parameters
-        ----------
-        incomes : np.ndarray
-            Array of potential incomes for agents
-        fine_structure_class : type
-            Class of fine structure to optimize (FlatFine or IncomeBasedFine)
-        vsl : float
-            Value of statistical life
-        death_prob_factor : float
-            Factor converting average speeding to death probability
-        income_utility_factor : float
-            Weight on income in utility function
-        labor_disutility_factor : float
-            Weight on labor disutility
-        speeding_utility_factor : float
-            Weight on speeding pleasure
-        max_iterations : int
-            Maximum iterations for society simulation
+    def _evaluate_flat_fine(self, fine_amount: float, tax_rate: float) -> float:
+        """Evaluate welfare for a given flat fine amount.
+
+        Args:
+            fine_amount: Flat fine amount
+            tax_rate: Tax rate
+
+        Returns:
+            Negative social welfare (for minimization)
         """
-        self.incomes = incomes
-        self.fine_structure_class = fine_structure_class
-        self.vsl = vsl
-        self.death_prob_factor = death_prob_factor
-        self.income_utility_factor = income_utility_factor
-        self.labor_disutility_factor = labor_disutility_factor
-        self.speeding_utility_factor = speeding_utility_factor
-        self.max_iterations = max_iterations
-
-        # Optimization history
-        self.history = []
-        self.best_params = None
-        self.best_utility = -np.inf
-
-    def objective_function(self, params: np.ndarray) -> float:
-        """
-        Objective function for optimization (negative social welfare).
-
-        Parameters
-        ----------
-        params : np.ndarray
-            Parameters to optimize [fine_params..., tax_rate]
-
-        Returns
-        -------
-        float
-            Negative total utility (for minimization)
-        """
-        # Extract tax rate (last parameter)
-        tax_rate = params[-1]
-        fine_params = params[:-1]
-
-        # Bounds checking
-        if tax_rate < 0 or tax_rate > 1:
-            return 1e10  # Penalty for invalid tax rate
-
-        # Create fine structure with given parameters
-        if self.fine_structure_class == FlatFine:
-            fine_structure = FlatFine(fine_params[0])
-        elif self.fine_structure_class == IncomeBasedFine:
-            fine_structure = IncomeBasedFine(fine_params[0], fine_params[1])
-        else:
-            raise ValueError(
-                f"Unknown fine structure class: {self.fine_structure_class}"
-            )
-
-        # Create agents
+        # Create fresh agents for each evaluation
         agents = [
             Agent(
-                income,
-                self.income_utility_factor,
-                self.labor_disutility_factor,
-                self.speeding_utility_factor,
+                wage=a.wage,
+                labor_disutility=a.labor_disutility,
+                speeding_utility=a.speeding_utility,
+                vsl=a.vsl,
             )
-            for income in self.incomes
+            for a in self.agents
         ]
 
-        # Create and run society simulation
+        fine = FlatFine(amount=fine_amount)
         society = Society(
-            agents, fine_structure, tax_rate, self.death_prob_factor, self.vsl
+            agents, fine, tax_rate, externality_factor=self.externality_factor
+        )
+        results = society.simulate(max_iterations=20)
+
+        self._history.append(
+            {
+                "type": "flat",
+                "fine_amount": fine_amount,
+                "welfare": results["social_welfare"],
+                "speeding": results["avg_speeding"],
+            }
         )
 
-        try:
-            results = society.simulate(self.max_iterations)
-            total_utility = results["total_utility"]
+        return -results["social_welfare"]
 
-            # Store in history
-            self.history.append(
-                {"params": params.copy(), "utility": total_utility, "results": results}
+    def _evaluate_income_based_fine(self, fine_rate: float, tax_rate: float) -> float:
+        """Evaluate welfare for a given income-based fine rate.
+
+        Args:
+            fine_rate: Income-based fine rate
+            tax_rate: Tax rate
+
+        Returns:
+            Negative social welfare (for minimization)
+        """
+        # Create fresh agents for each evaluation
+        agents = [
+            Agent(
+                wage=a.wage,
+                labor_disutility=a.labor_disutility,
+                speeding_utility=a.speeding_utility,
+                vsl=a.vsl,
+            )
+            for a in self.agents
+        ]
+
+        fine = IncomeBasedFine(rate=fine_rate)
+        society = Society(
+            agents, fine, tax_rate, externality_factor=self.externality_factor
+        )
+        results = society.simulate(max_iterations=20)
+
+        self._history.append(
+            {
+                "type": "income_based",
+                "fine_rate": fine_rate,
+                "welfare": results["social_welfare"],
+                "speeding": results["avg_speeding"],
+            }
+        )
+
+        return -results["social_welfare"]
+
+    def compare_systems(self, tax_rate: float) -> Dict[str, Any]:
+        """Compare optimal flat vs income-based fines.
+
+        Args:
+            tax_rate: Tax rate to use
+
+        Returns:
+            Dict with results for both systems and comparison
+        """
+        flat_result = self.optimize_flat_fine(tax_rate)
+        ib_result = self.optimize_income_based_fine(tax_rate)
+
+        return {
+            "flat": flat_result,
+            "income_based": ib_result,
+            "welfare_difference": flat_result["welfare"] - ib_result["welfare"],
+            "flat_better": flat_result["welfare"] > ib_result["welfare"],
+        }
+
+    @property
+    def history(self) -> List[Dict[str, Any]]:
+        """Return optimization history."""
+        return self._history
+
+    def _get_welfare_function(
+        self,
+        welfare_function: str = "utilitarian",
+        inequality_aversion: float = 1.0,
+    ) -> Callable[[np.ndarray], float]:
+        """Get welfare function by name.
+
+        Args:
+            welfare_function: One of "utilitarian", "rawlsian", "atkinson"
+            inequality_aversion: Gamma parameter for Atkinson welfare
+
+        Returns:
+            Callable that takes utilities array and returns welfare value
+        """
+        if welfare_function == "utilitarian":
+            return utilitarian_welfare
+        elif welfare_function == "rawlsian":
+            return rawlsian_welfare
+        elif welfare_function == "atkinson":
+            return lambda u: atkinson_welfare(u, inequality_aversion)
+        else:
+            raise ValueError(f"Unknown welfare function: {welfare_function}")
+
+    def _evaluate_with_welfare(
+        self,
+        fine,
+        tax_rate: float,
+        welfare_fn: Callable[[np.ndarray], float],
+    ) -> float:
+        """Evaluate fine structure with custom welfare function.
+
+        Args:
+            fine: Fine structure to evaluate
+            tax_rate: Tax rate
+            welfare_fn: Custom welfare function
+
+        Returns:
+            Negative welfare (for minimization)
+        """
+        agents = [
+            Agent(
+                wage=a.wage,
+                labor_disutility=a.labor_disutility,
+                speeding_utility=a.speeding_utility,
+                vsl=a.vsl,
+            )
+            for a in self.agents
+        ]
+
+        society = Society(
+            agents, fine, tax_rate, externality_factor=self.externality_factor
+        )
+        results = society.simulate(max_iterations=20)
+
+        # Compute individual utilities
+        utilities = np.array(
+            [
+                a.total_utility(
+                    a.optimal_hours,
+                    a.optimal_speeding,
+                    fine,
+                    tax_rate,
+                    results["death_prob"],
+                    results["ubi"],
+                )
+                for a in agents
+            ]
+        )
+
+        welfare = welfare_fn(utilities) - results["externality_cost"]
+
+        # Track history
+        self._history.append(
+            {
+                "welfare": welfare,
+                "speeding": results["avg_speeding"],
+            }
+        )
+
+        return -welfare
+
+    def optimize_flat_fine(
+        self,
+        tax_rate: float,
+        bounds: tuple = (0.0, 10000.0),
+        welfare_function: str = "utilitarian",
+        inequality_aversion: float = 1.0,
+    ) -> Dict[str, Any]:
+        """Find optimal flat fine amount.
+
+        Args:
+            tax_rate: Tax rate to use
+            bounds: (min, max) bounds for fine amount
+            welfare_function: One of "utilitarian", "rawlsian", "atkinson"
+            inequality_aversion: Gamma parameter for Atkinson welfare
+
+        Returns:
+            Dict with optimal fine and welfare
+        """
+        self._history = []
+        welfare_fn = self._get_welfare_function(welfare_function, inequality_aversion)
+
+        def objective(fine_amount):
+            return self._evaluate_with_welfare(
+                FlatFine(amount=fine_amount), tax_rate, welfare_fn
             )
 
-            # Update best if improved
-            if total_utility > self.best_utility:
-                self.best_utility = total_utility
-                self.best_params = params.copy()
+        result = minimize_scalar(objective, bounds=bounds, method="bounded")
 
-            return -total_utility  # Negative for minimization
+        return {
+            "optimal_fine": result.x,
+            "welfare": -result.fun,
+            "converged": result.success if hasattr(result, "success") else True,
+            "history": self._history.copy(),
+        }
 
-        except Exception as e:
-            print(f"Simulation failed with params {params}: {e}")
-            return 1e10  # Large penalty for failed simulation
-
-    def optimize(
+    def optimize_income_based_fine(
         self,
-        initial_params: Optional[np.ndarray] = None,
-        method: str = "L-BFGS-B",
-        options: Optional[Dict] = None,
-    ) -> Tuple[np.ndarray, float, List[Dict]]:
-        """
-        Find optimal fine and tax parameters.
+        tax_rate: float,
+        bounds: tuple = (0.0, 0.1),
+        welfare_function: str = "utilitarian",
+        inequality_aversion: float = 1.0,
+    ) -> Dict[str, Any]:
+        """Find optimal income-based fine rate.
 
-        Parameters
-        ----------
-        initial_params : np.ndarray, optional
-            Initial parameter values
-        method : str
-            Optimization method for scipy.optimize.minimize
-        options : dict, optional
-            Options for optimizer
+        Args:
+            tax_rate: Tax rate to use
+            bounds: (min, max) bounds for fine rate
+            welfare_function: One of "utilitarian", "rawlsian", "atkinson"
+            inequality_aversion: Gamma parameter for Atkinson welfare
 
-        Returns
-        -------
-        Tuple[np.ndarray, float, List[Dict]]
-            (optimal_params, optimal_utility, optimization_history)
+        Returns:
+            Dict with optimal rate and welfare
         """
-        # Set default initial parameters if not provided
-        if initial_params is None:
-            if self.fine_structure_class == FlatFine:
-                # [fine_amount, tax_rate]
-                initial_params = np.array([100.0, 0.3])
-            elif self.fine_structure_class == IncomeBasedFine:
-                # [base_amount, income_factor, tax_rate]
-                initial_params = np.array([50.0, 0.001, 0.3])
-            else:
-                raise ValueError(
-                    f"Unknown fine structure class: {self.fine_structure_class}"
+        self._history = []
+        welfare_fn = self._get_welfare_function(welfare_function, inequality_aversion)
+
+        def objective(fine_rate):
+            return self._evaluate_with_welfare(
+                IncomeBasedFine(rate=fine_rate), tax_rate, welfare_fn
+            )
+
+        result = minimize_scalar(objective, bounds=bounds, method="bounded")
+
+        return {
+            "optimal_rate": result.x,
+            "welfare": -result.fun,
+            "converged": result.success if hasattr(result, "success") else True,
+            "history": self._history.copy(),
+        }
+
+    def optimize_hybrid_fine(
+        self,
+        tax_rate: float,
+        constrain_rate_nonnegative: bool = True,
+        welfare_function: str = "utilitarian",
+        inequality_aversion: float = 1.0,
+        flat_bounds: tuple = (0.0, 2000.0),
+        rate_bounds: tuple = (-0.5, 0.1),
+    ) -> Dict[str, Any]:
+        """Find optimal hybrid fine (flat + income rate).
+
+        Args:
+            tax_rate: Tax rate to use
+            constrain_rate_nonnegative: If True, income rate must be >= 0
+            welfare_function: One of "utilitarian", "rawlsian", "atkinson"
+            inequality_aversion: Gamma parameter for Atkinson welfare
+            flat_bounds: (min, max) bounds for flat amount
+            rate_bounds: (min, max) bounds for income rate
+
+        Returns:
+            Dict with optimal flat amount, income rate, and welfare
+        """
+        self._history = []
+        welfare_fn = self._get_welfare_function(welfare_function, inequality_aversion)
+
+        def objective(params):
+            flat, rate = params
+            # Check bounds
+            if flat < flat_bounds[0] or flat > flat_bounds[1]:
+                return 1e10
+            if constrain_rate_nonnegative and rate < 0:
+                return 1e10
+            if rate < rate_bounds[0] or rate > rate_bounds[1]:
+                return 1e10
+
+            return self._evaluate_with_welfare(
+                HybridFine(flat_amount=flat, income_rate=rate), tax_rate, welfare_fn
+            )
+
+        # Get initial guess from optimal flat (multi-start)
+        flat_opt = self.optimize_flat_fine(
+            tax_rate,
+            welfare_function=welfare_function,
+            inequality_aversion=inequality_aversion,
+        )
+        x0_base = [flat_opt["optimal_fine"], 0.0]
+
+        # Use flat optimum welfare as baseline (hybrid with rate=0 should match)
+        baseline_welfare = flat_opt["welfare"]
+
+        # Try multiple starting points
+        best_result = None
+        starting_points = [
+            x0_base,
+            [500.0, 0.005 if constrain_rate_nonnegative else 0.0],
+            [flat_opt["optimal_fine"], 0.01],
+        ]
+
+        for x0 in starting_points:
+            result = minimize(
+                objective,
+                x0=x0,
+                method="Nelder-Mead",
+                options={"xatol": 1, "fatol": 0.001, "maxiter": 500},
+            )
+            if best_result is None or result.fun < best_result.fun:
+                best_result = result
+
+        result = best_result
+
+        # Ensure we're at least as good as the flat optimum with rate=0
+        if -result.fun < baseline_welfare:
+            # Optimization found worse result, use flat optimum
+            opt_flat = flat_opt["optimal_fine"]
+            opt_rate = 0.0
+            final_welfare = baseline_welfare
+        else:
+            opt_flat, opt_rate = result.x
+            final_welfare = -result.fun
+
+        return {
+            "optimal_flat": opt_flat,
+            "optimal_rate": opt_rate,
+            "welfare": final_welfare,
+            "converged": result.success,
+            "history": self._history.copy(),
+        }
+
+    def sensitivity_analysis(
+        self,
+        tax_rate: float,
+        parameter: str,
+        values: List[float],
+        welfare_function: str = "utilitarian",
+        inequality_aversion: float = 1.0,
+    ) -> List[Dict[str, Any]]:
+        """Run sensitivity analysis over a parameter.
+
+        Args:
+            tax_rate: Baseline tax rate
+            parameter: Parameter to vary ("externality_factor" or "tax_rate")
+            values: List of values to test
+            welfare_function: Welfare function to use
+            inequality_aversion: Gamma for Atkinson welfare
+
+        Returns:
+            List of results for each parameter value
+        """
+        results = []
+
+        for val in values:
+            if parameter == "externality_factor":
+                # Temporarily change externality factor
+                old_ef = self.externality_factor
+                self.externality_factor = val
+                opt = self.optimize_flat_fine(
+                    tax_rate=tax_rate,
+                    welfare_function=welfare_function,
+                    inequality_aversion=inequality_aversion,
                 )
+                self.externality_factor = old_ef
+                results.append(
+                    {
+                        "externality_factor": val,
+                        "optimal_flat": opt["optimal_fine"],
+                        "welfare": opt["welfare"],
+                    }
+                )
+            elif parameter == "tax_rate":
+                opt = self.optimize_flat_fine(
+                    tax_rate=val,
+                    welfare_function=welfare_function,
+                    inequality_aversion=inequality_aversion,
+                )
+                results.append(
+                    {
+                        "tax_rate": val,
+                        "optimal_flat": opt["optimal_fine"],
+                        "welfare": opt["welfare"],
+                    }
+                )
+            else:
+                raise ValueError(f"Unknown parameter: {parameter}")
 
-        # Set bounds based on fine structure
-        if self.fine_structure_class == FlatFine:
-            bounds = [
-                (0, 10000),  # fine_amount
-                (0, 0.9),  # tax_rate
-            ]
-        elif self.fine_structure_class == IncomeBasedFine:
-            bounds = [
-                (0, 1000),  # base_amount
-                (0, 0.01),  # income_factor
-                (0, 0.9),  # tax_rate
-            ]
-        else:
-            bounds = None
+        return results
 
-        # Default options
-        if options is None:
-            options = {
-                "maxiter": 100,
-                "disp": True,
-            }
+    @staticmethod
+    def sample_size_convergence(
+        wage_pool: np.ndarray,
+        sample_sizes: List[int],
+        tax_rate: float,
+        labor_disutility: float = 25.0,
+        externality_factor: float = 0.2,
+        seed: int = 42,
+    ) -> List[Dict[str, Any]]:
+        """Test convergence of optimal fine across sample sizes.
 
-        # Clear history
-        self.history = []
-        self.best_params = None
-        self.best_utility = -np.inf
+        Args:
+            wage_pool: Pool of wages to sample from
+            sample_sizes: List of sample sizes to test
+            tax_rate: Tax rate to use
+            labor_disutility: Labor disutility parameter
+            externality_factor: Externality factor
+            seed: Random seed
 
-        # Run optimization
-        result = optimize.minimize(
-            self.objective_function,
-            initial_params,
-            method=method,
-            bounds=bounds,
-            options=options,
-        )
-
-        # Return best found (might not be final if optimization failed)
-        if self.best_params is not None:
-            return self.best_params, self.best_utility, self.history
-        else:
-            return result.x, -result.fun, self.history
-
-    def compare_fine_structures(self, initial_tax_rate: float = 0.3) -> Dict[str, Any]:
+        Returns:
+            List of results for each sample size
         """
-        Compare welfare under flat vs income-based fine structures.
+        results = []
+        np.random.seed(seed)
 
-        Parameters
-        ----------
-        initial_tax_rate : float
-            Initial tax rate for both optimizations
+        for n in sample_sizes:
+            # Sample wages
+            wages = np.random.choice(wage_pool, size=n, replace=False)
 
-        Returns
-        -------
-        Dict[str, Any]
-            Comparison results including optimal parameters and welfare
-        """
-        results = {}
+            # Create agents
+            agents = [Agent(wage=w, labor_disutility=labor_disutility) for w in wages]
 
-        # Optimize flat fine
-        print("Optimizing flat fine structure...")
-        flat_optimizer = WelfareOptimizer(
-            self.incomes,
-            FlatFine,
-            self.vsl,
-            self.death_prob_factor,
-            self.income_utility_factor,
-            self.labor_disutility_factor,
-            self.speeding_utility_factor,
-            self.max_iterations,
-        )
+            # Optimize
+            optimizer = WelfareOptimizer(agents, externality_factor=externality_factor)
+            opt = optimizer.optimize_flat_fine(tax_rate=tax_rate)
 
-        flat_initial = np.array([self.death_prob_factor * self.vsl, initial_tax_rate])
-        flat_params, flat_utility, flat_history = flat_optimizer.optimize(flat_initial)
-
-        results["flat"] = {
-            "params": flat_params,
-            "utility": flat_utility,
-            "history": flat_history,
-            "fine_amount": flat_params[0],
-            "tax_rate": flat_params[1],
-        }
-
-        # Optimize income-based fine
-        print("\nOptimizing income-based fine structure...")
-        income_optimizer = WelfareOptimizer(
-            self.incomes,
-            IncomeBasedFine,
-            self.vsl,
-            self.death_prob_factor,
-            self.income_utility_factor,
-            self.labor_disutility_factor,
-            self.speeding_utility_factor,
-            self.max_iterations,
-        )
-
-        income_initial = np.array([50.0, 0.001, initial_tax_rate])
-        income_params, income_utility, income_history = income_optimizer.optimize(
-            income_initial
-        )
-
-        results["income_based"] = {
-            "params": income_params,
-            "utility": income_utility,
-            "history": income_history,
-            "base_amount": income_params[0],
-            "income_factor": income_params[1],
-            "tax_rate": income_params[2],
-        }
-
-        # Calculate welfare difference
-        results["welfare_difference"] = income_utility - flat_utility
-        results["welfare_pct_change"] = (
-            (income_utility - flat_utility) / flat_utility * 100
-        )
+            results.append(
+                {
+                    "n_agents": n,
+                    "optimal_flat": opt["optimal_fine"],
+                    "welfare": opt["welfare"],
+                }
+            )
 
         return results
