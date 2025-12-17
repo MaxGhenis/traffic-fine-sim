@@ -88,7 +88,7 @@ The general principle—that linking penalties to productivity creates implicit 
 
 The debate over income-based fines exemplifies a broader challenge in public policy: reconciling distributional concerns with efficiency objectives. While the intuitive appeal of proportional penalties is strong, our analysis demonstrates that **flat fines are welfare-optimal** when labor supply responses are incorporated.
 
-Our key finding is stark: using continuous optimization, the welfare-maximizing fine structure is essentially flat (€702 with a negligible 0.002% income gradient). Even more striking, the unconstrained optimum is actually *regressive* (€1435 − 13.5% of income), indicating that pure efficiency considerations favor lower fines for high earners. This occurs because income-based fines create an additional marginal tax that compounds existing labor market distortions.
+Our key finding is stark: using continuous optimization, the welfare-maximizing fine structure is essentially flat (€701 with a negligible 0.002% income gradient). Even more striking, the unconstrained optimum is actually *regressive* (€1,436 − 13.6% of income), indicating that pure efficiency considerations favor lower fines for high earners. This occurs because income-based fines create an additional marginal tax that compounds existing labor market distortions.
 
 This does not imply that equity concerns are irrelevant. Income-based fines may be justified on fairness grounds even when they reduce aggregate welfare. However, policymakers should recognize that such systems involve a genuine efficiency cost, not merely a redistribution. The optimal policy depends on society's willingness to sacrifice efficiency for equity.
 

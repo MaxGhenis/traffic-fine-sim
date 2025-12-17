@@ -106,3 +106,59 @@ class IncomeBasedFine(FineStructure):
     def marginal_rate(self, income: float, speeding: float) -> float:
         """Marginal rate is rate * speeding."""
         return self.rate * speeding
+
+
+class HybridFine(FineStructure):
+    """Hybrid fine structure - flat base plus income component.
+
+    Fine = (flat_amount + rate * income) * speeding
+
+    This allows optimizing over both flat and income-based components
+    to find the welfare-maximizing combination.
+    """
+
+    def __init__(self, flat_amount: float, income_rate: float):
+        """Initialize hybrid fine.
+
+        Args:
+            flat_amount: Base flat fine amount
+            income_rate: Additional rate as fraction of income
+        """
+        self.flat_amount = flat_amount
+        self.income_rate = income_rate
+
+    def calculate(self, income: float, speeding: float) -> float:
+        """Calculate fine: (flat_amount + rate * income) * speeding."""
+        return max(0, (self.flat_amount + self.income_rate * income) * speeding)
+
+    def marginal_rate(self, income: float, speeding: float) -> float:
+        """Marginal rate is income_rate * speeding."""
+        return self.income_rate * speeding
+
+
+class BackwardLookingFine(FineStructure):
+    """Backward-looking income-based fine (Finnish system).
+
+    Fine = rate * lagged_income * speeding
+
+    Uses previous year's income, so current labor decisions don't
+    affect current fine liability. Marginal rate on current income is zero.
+    """
+
+    def __init__(self, rate: float, lagged_income: float):
+        """Initialize backward-looking fine.
+
+        Args:
+            rate: Fine rate as fraction of lagged income
+            lagged_income: Previous period's income (fixed)
+        """
+        self.rate = rate
+        self.lagged_income = lagged_income
+
+    def calculate(self, income: float, speeding: float) -> float:
+        """Calculate fine based on lagged income."""
+        return max(0, self.rate * self.lagged_income * speeding)
+
+    def marginal_rate(self, income: float, speeding: float) -> float:
+        """Marginal rate is zero - no current labor distortion."""
+        return 0.0
