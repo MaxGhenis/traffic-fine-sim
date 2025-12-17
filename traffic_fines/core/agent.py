@@ -8,6 +8,8 @@ Agents optimize their labor supply and speeding decisions given:
 - UBI transfers
 """
 
+from typing import Optional
+
 import numpy as np
 from scipy.optimize import minimize
 
@@ -49,8 +51,8 @@ class Agent:
         self.max_hours = max_hours
 
         # Cached optimization results
-        self._optimal_hours: float | None = None
-        self._optimal_speeding: float | None = None
+        self._optimal_hours: Optional[float] = None
+        self._optimal_speeding: Optional[float] = None
 
     def consumption_utility(self, consumption: float) -> float:
         """Log utility from consumption: u(c) = log(1 + c)."""
@@ -181,11 +183,11 @@ class Agent:
         return self._optimal_hours, self._optimal_speeding
 
     @property
-    def optimal_hours(self) -> float | None:
+    def optimal_hours(self) -> Optional[float]:
         """Return cached optimal hours."""
         return self._optimal_hours
 
     @property
-    def optimal_speeding(self) -> float | None:
+    def optimal_speeding(self) -> Optional[float]:
         """Return cached optimal speeding."""
         return self._optimal_speeding

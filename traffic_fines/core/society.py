@@ -4,7 +4,7 @@ Simulates a society of heterogeneous agents who optimize their labor supply
 and speeding decisions under different fine structures.
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import numpy as np
 
 from traffic_fines.core.agent import Agent
@@ -209,11 +209,11 @@ class Society:
         )
 
     @property
-    def results(self) -> Dict[str, Any] | None:
+    def results(self) -> Optional[Dict[str, Any]]:
         """Return cached simulation results."""
         return self._results
 
     @property
-    def agent_results(self) -> List[Dict[str, Any]] | None:
+    def agent_results(self) -> Optional[List[Dict[str, Any]]]:
         """Return cached per-agent results."""
         return self._agent_results
