@@ -120,7 +120,9 @@ class TestHybridFine:
 
         for income in [30_000, 50_000, 100_000]:
             for speeding in [0.0, 0.5, 1.0]:
-                assert hybrid.calculate(income, speeding) == flat.calculate(income, speeding)
+                assert hybrid.calculate(income, speeding) == flat.calculate(
+                    income, speeding
+                )
 
     def test_pure_income_based_when_flat_zero(self):
         """With zero flat amount, should behave like income-based fine."""

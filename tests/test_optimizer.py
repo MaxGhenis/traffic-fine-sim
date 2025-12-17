@@ -87,7 +87,9 @@ class TestHybridFineOptimization:
         agents = [Agent(wage=w, labor_disutility=25.0) for w in [30.0, 50.0, 80.0]]
         optimizer = WelfareOptimizer(agents)
 
-        result = optimizer.optimize_hybrid_fine(tax_rate=0.3, constrain_rate_nonnegative=True)
+        result = optimizer.optimize_hybrid_fine(
+            tax_rate=0.3, constrain_rate_nonnegative=True
+        )
 
         assert result["optimal_rate"] >= 0
 
@@ -96,7 +98,9 @@ class TestHybridFineOptimization:
         agents = [Agent(wage=w, labor_disutility=25.0) for w in [30.0, 50.0, 80.0]]
         optimizer = WelfareOptimizer(agents)
 
-        result = optimizer.optimize_hybrid_fine(tax_rate=0.3, constrain_rate_nonnegative=False)
+        result = optimizer.optimize_hybrid_fine(
+            tax_rate=0.3, constrain_rate_nonnegative=False
+        )
 
         # Result may or may not be regressive, but method should work
         assert "optimal_rate" in result
@@ -121,10 +125,7 @@ class TestAlternativeWelfareFunctions:
         agents = [Agent(wage=w, labor_disutility=25.0) for w in [30.0, 50.0, 80.0]]
         optimizer = WelfareOptimizer(agents)
 
-        result = optimizer.optimize_flat_fine(
-            tax_rate=0.3,
-            welfare_function="rawlsian"
-        )
+        result = optimizer.optimize_flat_fine(tax_rate=0.3, welfare_function="rawlsian")
 
         assert "optimal_fine" in result
         assert "welfare" in result
@@ -135,9 +136,7 @@ class TestAlternativeWelfareFunctions:
         optimizer = WelfareOptimizer(agents)
 
         result = optimizer.optimize_flat_fine(
-            tax_rate=0.3,
-            welfare_function="atkinson",
-            inequality_aversion=1.0
+            tax_rate=0.3, welfare_function="atkinson", inequality_aversion=1.0
         )
 
         assert "optimal_fine" in result
@@ -151,14 +150,14 @@ class TestAlternativeWelfareFunctions:
             tax_rate=0.3,
             welfare_function="atkinson",
             inequality_aversion=0.5,
-            constrain_rate_nonnegative=True
+            constrain_rate_nonnegative=True,
         )
 
         high_aversion = optimizer.optimize_hybrid_fine(
             tax_rate=0.3,
             welfare_function="atkinson",
             inequality_aversion=2.0,
-            constrain_rate_nonnegative=True
+            constrain_rate_nonnegative=True,
         )
 
         # Higher aversion should lead to higher (or equal) income rate
@@ -174,9 +173,7 @@ class TestSensitivityAnalysis:
         optimizer = WelfareOptimizer(agents)
 
         results = optimizer.sensitivity_analysis(
-            tax_rate=0.3,
-            parameter="externality_factor",
-            values=[0.1, 0.2, 0.5]
+            tax_rate=0.3, parameter="externality_factor", values=[0.1, 0.2, 0.5]
         )
 
         assert len(results) == 3
@@ -191,7 +188,7 @@ class TestSensitivityAnalysis:
         results = optimizer.sensitivity_analysis(
             tax_rate=0.3,  # baseline, will be overridden
             parameter="tax_rate",
-            values=[0.2, 0.3, 0.4]
+            values=[0.2, 0.3, 0.4],
         )
 
         assert len(results) == 3
@@ -207,7 +204,7 @@ class TestSensitivityAnalysis:
             wage_pool=wage_pool,
             sample_sizes=[10, 25, 50],
             tax_rate=0.3,
-            labor_disutility=25.0
+            labor_disutility=25.0,
         )
 
         assert len(results) == 3

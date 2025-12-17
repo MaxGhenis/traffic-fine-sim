@@ -88,7 +88,7 @@ class Agent:
         # Death cost parameter scaled to consumption level
         # This ensures the cost is in utility-comparable units
         gamma = 0.5  # Base death aversion
-        return gamma * (speeding ** 2)
+        return gamma * (speeding**2)
 
     def gross_income(self, hours: float) -> float:
         """Calculate gross income: wage * hours."""

@@ -55,9 +55,7 @@ class WelfareOptimizer:
         self.externality_factor = externality_factor
         self._history: List[Dict[str, Any]] = []
 
-    def _evaluate_flat_fine(
-        self, fine_amount: float, tax_rate: float
-    ) -> float:
+    def _evaluate_flat_fine(self, fine_amount: float, tax_rate: float) -> float:
         """Evaluate welfare for a given flat fine amount.
 
         Args:
@@ -79,7 +77,9 @@ class WelfareOptimizer:
         ]
 
         fine = FlatFine(amount=fine_amount)
-        society = Society(agents, fine, tax_rate, externality_factor=self.externality_factor)
+        society = Society(
+            agents, fine, tax_rate, externality_factor=self.externality_factor
+        )
         results = society.simulate(max_iterations=20)
 
         self._history.append(
@@ -93,9 +93,7 @@ class WelfareOptimizer:
 
         return -results["social_welfare"]
 
-    def _evaluate_income_based_fine(
-        self, fine_rate: float, tax_rate: float
-    ) -> float:
+    def _evaluate_income_based_fine(self, fine_rate: float, tax_rate: float) -> float:
         """Evaluate welfare for a given income-based fine rate.
 
         Args:
@@ -117,7 +115,9 @@ class WelfareOptimizer:
         ]
 
         fine = IncomeBasedFine(rate=fine_rate)
-        society = Society(agents, fine, tax_rate, externality_factor=self.externality_factor)
+        society = Society(
+            agents, fine, tax_rate, externality_factor=self.externality_factor
+        )
         results = society.simulate(max_iterations=20)
 
         self._history.append(
@@ -204,29 +204,35 @@ class WelfareOptimizer:
             for a in self.agents
         ]
 
-        society = Society(agents, fine, tax_rate, externality_factor=self.externality_factor)
+        society = Society(
+            agents, fine, tax_rate, externality_factor=self.externality_factor
+        )
         results = society.simulate(max_iterations=20)
 
         # Compute individual utilities
-        utilities = np.array([
-            a.total_utility(
-                a.optimal_hours,
-                a.optimal_speeding,
-                fine,
-                tax_rate,
-                results["death_prob"],
-                results["ubi"],
-            )
-            for a in agents
-        ])
+        utilities = np.array(
+            [
+                a.total_utility(
+                    a.optimal_hours,
+                    a.optimal_speeding,
+                    fine,
+                    tax_rate,
+                    results["death_prob"],
+                    results["ubi"],
+                )
+                for a in agents
+            ]
+        )
 
         welfare = welfare_fn(utilities) - results["externality_cost"]
 
         # Track history
-        self._history.append({
-            "welfare": welfare,
-            "speeding": results["avg_speeding"],
-        })
+        self._history.append(
+            {
+                "welfare": welfare,
+                "speeding": results["avg_speeding"],
+            }
+        )
 
         return -welfare
 
@@ -341,8 +347,9 @@ class WelfareOptimizer:
 
         # Get initial guess from optimal flat (multi-start)
         flat_opt = self.optimize_flat_fine(
-            tax_rate, welfare_function=welfare_function,
-            inequality_aversion=inequality_aversion
+            tax_rate,
+            welfare_function=welfare_function,
+            inequality_aversion=inequality_aversion,
         )
         x0_base = [flat_opt["optimal_fine"], 0.0]
 
@@ -420,22 +427,26 @@ class WelfareOptimizer:
                     inequality_aversion=inequality_aversion,
                 )
                 self.externality_factor = old_ef
-                results.append({
-                    "externality_factor": val,
-                    "optimal_flat": opt["optimal_fine"],
-                    "welfare": opt["welfare"],
-                })
+                results.append(
+                    {
+                        "externality_factor": val,
+                        "optimal_flat": opt["optimal_fine"],
+                        "welfare": opt["welfare"],
+                    }
+                )
             elif parameter == "tax_rate":
                 opt = self.optimize_flat_fine(
                     tax_rate=val,
                     welfare_function=welfare_function,
                     inequality_aversion=inequality_aversion,
                 )
-                results.append({
-                    "tax_rate": val,
-                    "optimal_flat": opt["optimal_fine"],
-                    "welfare": opt["welfare"],
-                })
+                results.append(
+                    {
+                        "tax_rate": val,
+                        "optimal_flat": opt["optimal_fine"],
+                        "welfare": opt["welfare"],
+                    }
+                )
             else:
                 raise ValueError(f"Unknown parameter: {parameter}")
 
@@ -471,19 +482,18 @@ class WelfareOptimizer:
             wages = np.random.choice(wage_pool, size=n, replace=False)
 
             # Create agents
-            agents = [
-                Agent(wage=w, labor_disutility=labor_disutility)
-                for w in wages
-            ]
+            agents = [Agent(wage=w, labor_disutility=labor_disutility) for w in wages]
 
             # Optimize
             optimizer = WelfareOptimizer(agents, externality_factor=externality_factor)
             opt = optimizer.optimize_flat_fine(tax_rate=tax_rate)
 
-            results.append({
-                "n_agents": n,
-                "optimal_flat": opt["optimal_fine"],
-                "welfare": opt["welfare"],
-            })
+            results.append(
+                {
+                    "n_agents": n,
+                    "optimal_flat": opt["optimal_fine"],
+                    "welfare": opt["welfare"],
+                }
+            )
 
         return results

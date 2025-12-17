@@ -131,7 +131,7 @@ class Society:
         # Calculate externality cost
         # Speeding creates harm to others (pedestrians, other drivers)
         # Externality = factor * avg_speeding^2 * n_agents
-        externality_cost = self.externality_factor * (avg_speeding ** 2) * n_agents
+        externality_cost = self.externality_factor * (avg_speeding**2) * n_agents
         social_welfare = total_utility - externality_cost
 
         # Store results
