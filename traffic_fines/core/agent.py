@@ -1,203 +1,185 @@
-"""Agent module for traffic fines simulation."""
+"""Agent class for economic optimization.
+
+Agents optimize their labor supply and speeding decisions given:
+- Wage rate (productivity)
+- Tax rate
+- Fine structure
+- Death probability from speeding
+- UBI transfers
+"""
 
 import numpy as np
-from scipy import optimize
-from typing import Callable, Tuple, Optional
+from scipy.optimize import minimize
+
+from traffic_fines.core.fines import FineStructure
+from traffic_fines.utils.parameters import DEFAULT_PARAMS
 
 
 class Agent:
-    """
-    Represents an economic agent who optimizes labor supply and speeding decisions.
+    """Economic agent who optimizes labor supply and speeding decisions.
 
-    Agents face a utility function with:
-    - Income utility (log utility from net income)
-    - Labor disutility (quadratic in hours worked)
-    - Speeding utility (log utility from speeding behavior)
-    - Death probability cost (VSL-weighted expected mortality cost)
-    """
+    Utility function:
+        U = log(1 + consumption) + alpha*log(1 + speeding) - beta*hours^2/2 - death_prob*VSL
 
-    WORK_HOURS_PER_YEAR = 2080  # Standard full-time hours
+    Budget constraint:
+        consumption = wage*hours*(1-tax) - fine(income, speeding) + ubi
+    """
 
     def __init__(
         self,
-        potential_income: float,
-        income_utility_factor: float = 1.0,
-        labor_disutility_factor: float = 0.5,
-        speeding_utility_factor: float = 0.1,
+        wage: float,
+        labor_disutility: float = DEFAULT_PARAMS.labor_disutility,
+        speeding_utility: float = DEFAULT_PARAMS.speeding_utility,
+        vsl: float = DEFAULT_PARAMS.vsl,
+        max_hours: float = DEFAULT_PARAMS.max_hours,
     ):
+        """Initialize agent.
+
+        Args:
+            wage: Hourly wage rate
+            labor_disutility: Beta parameter for h(l) = beta * l^2 / 2
+            speeding_utility: Alpha parameter for v(s) = alpha * log(1 + s)
+            vsl: Value of statistical life
+            max_hours: Maximum annual work hours (default 2080)
         """
-        Initialize an agent with given characteristics.
+        self.wage = wage
+        self.labor_disutility = labor_disutility
+        self.speeding_utility = speeding_utility
+        self.vsl = vsl
+        self.max_hours = max_hours
 
-        Parameters
-        ----------
-        potential_income : float
-            Maximum annual income if working full-time
-        income_utility_factor : float
-            Weight on income in utility function
-        labor_disutility_factor : float
-            Weight on labor disutility
-        speeding_utility_factor : float
-            Weight on speeding pleasure
+        # Cached optimization results
+        self._optimal_hours: float | None = None
+        self._optimal_speeding: float | None = None
+
+    def consumption_utility(self, consumption: float) -> float:
+        """Log utility from consumption: u(c) = log(1 + c)."""
+        return np.log(1 + max(0, consumption))
+
+    def labor_disutility_fn(self, hours: float) -> float:
+        """Quadratic disutility from labor: h(l) = beta * l^2 / 2.
+
+        Args:
+            hours: Work hours (0 to max_hours)
         """
-        self.potential_income = np.float64(potential_income)
-        self.wage_rate = self.potential_income / self.WORK_HOURS_PER_YEAR
-        self.income_utility_factor = income_utility_factor
-        self.labor_disutility_factor = labor_disutility_factor
-        self.speeding_utility_factor = speeding_utility_factor
+        # Normalize to 0-1 scale for numerical stability
+        l = hours / self.max_hours
+        return self.labor_disutility * (l**2) / 2
 
-        # State variables (set during optimization)
-        self.labor_hours: float = 0.0
-        self.speeding: float = 0.0
-        self.fine_paid: float = 0.0
-        self.utility: float = 0.0
+    def speeding_utility_fn(self, speeding: float) -> float:
+        """Log utility from speeding: v(s) = alpha * log(1 + s)."""
+        return self.speeding_utility * np.log(1 + speeding)
 
-    def calculate_utility(
+    def death_cost(self, speeding: float, base_death_prob: float) -> float:
+        """Expected cost of death: (base_prob + speeding * base_prob) * VSL.
+
+        Individual death risk increases with speeding intensity.
+
+        Args:
+            speeding: Individual speeding intensity [0, 1]
+            base_death_prob: Base death probability from aggregate speeding
+        """
+        individual_risk = base_death_prob * (1 + speeding)
+        return individual_risk * self.vsl
+
+    def gross_income(self, hours: float) -> float:
+        """Calculate gross income: wage * hours."""
+        return self.wage * hours
+
+    def net_income(
         self,
-        labor_hours: float,
+        hours: float,
         speeding: float,
-        fine_function: Callable[[float], float],
+        fine: FineStructure,
+        tax_rate: float,
+        ubi: float,
+    ) -> float:
+        """Calculate net income after taxes, fines, and transfers.
+
+        Args:
+            hours: Work hours
+            speeding: Speeding intensity [0, 1]
+            fine: Fine structure
+            tax_rate: Income tax rate
+            ubi: Universal basic income transfer
+
+        Returns:
+            Net income (consumption)
+        """
+        gross = self.gross_income(hours)
+        tax = gross * tax_rate
+        fine_amount = fine.calculate(gross, speeding)
+        return gross - tax - fine_amount + ubi
+
+    def total_utility(
+        self,
+        hours: float,
+        speeding: float,
+        fine: FineStructure,
+        tax_rate: float,
         death_prob: float,
         ubi: float,
-        tax_rate: float,
-        vsl: float,
     ) -> float:
+        """Calculate total utility.
+
+        U = log(1 + c) + alpha*log(1 + s) - beta*l^2/2 - p(s)*VSL
         """
-        Calculate agent's utility for given choices.
-
-        Parameters
-        ----------
-        labor_hours : float
-            Hours worked (0 to 2080)
-        speeding : float
-            Speeding intensity (0 to 1)
-        fine_function : Callable
-            Function mapping income to fine amount
-        death_prob : float
-            Probability of death per unit speeding
-        ubi : float
-            Universal basic income payment
-        tax_rate : float
-            Marginal tax rate on labor income
-        vsl : float
-            Value of statistical life
-
-        Returns
-        -------
-        float
-            Total utility
-        """
-        # Income calculations
-        gross_income = self.wage_rate * labor_hours
-        fine = fine_function(gross_income) * speeding
-        tax = gross_income * tax_rate
-        net_income = gross_income - fine - tax + ubi
-
-        # Ensure positive net income for log utility
-        net_income = max(net_income, 1e-10)
-
-        # Utility components
-        labor_disutility = (
-            self.labor_disutility_factor
-            * (labor_hours**2)
-            / (2 * self.WORK_HOURS_PER_YEAR)
+        consumption = self.net_income(hours, speeding, fine, tax_rate, ubi)
+        return (
+            self.consumption_utility(consumption)
+            + self.speeding_utility_fn(speeding)
+            - self.labor_disutility_fn(hours)
+            - self.death_cost(speeding, death_prob)
         )
-
-        income_utility = self.income_utility_factor * np.log(1 + net_income)
-        speeding_utility = self.speeding_utility_factor * np.log(1 + speeding)
-        death_cost = death_prob * speeding * vsl
-
-        total_utility = (
-            income_utility + speeding_utility - labor_disutility - death_cost
-        )
-
-        return np.float64(total_utility)
 
     def optimize(
         self,
-        fine_function: Callable[[float], float],
+        fine: FineStructure,
+        tax_rate: float,
         death_prob: float,
         ubi: float,
-        tax_rate: float,
-        vsl: float,
-    ) -> Tuple[float, float, float]:
-        """
-        Optimize agent's labor supply and speeding decisions.
+    ) -> tuple[float, float]:
+        """Find optimal labor supply and speeding.
 
-        Parameters
-        ----------
-        fine_function : Callable
-            Function mapping income to fine amount
-        death_prob : float
-            Probability of death per unit speeding
-        ubi : float
-            Universal basic income payment
-        tax_rate : float
-            Marginal tax rate on labor income
-        vsl : float
-            Value of statistical life
+        Args:
+            fine: Fine structure
+            tax_rate: Income tax rate
+            death_prob: Probability of death from speeding
+            ubi: Universal basic income transfer
 
-        Returns
-        -------
-        Tuple[float, float, float]
-            Optimal (labor_hours, speeding, utility)
+        Returns:
+            Tuple of (optimal_hours, optimal_speeding)
         """
 
-        def objective(x):
-            labor_hours, speeding = x
-            return -self.calculate_utility(
-                labor_hours, speeding, fine_function, death_prob, ubi, tax_rate, vsl
-            )
+        def neg_utility(x: np.ndarray) -> float:
+            hours, speeding = x[0], x[1]
+            return -self.total_utility(hours, speeding, fine, tax_rate, death_prob, ubi)
 
-        # Optimization bounds
-        bounds = [
-            (0, self.WORK_HOURS_PER_YEAR),  # Labor hours
-            (0, 1),  # Speeding intensity
-        ]
+        # Initial guess: work half time, moderate speeding
+        x0 = np.array([self.max_hours / 2, 0.3])
 
-        # Initial guess (half-time work, moderate speeding)
-        x0 = [self.WORK_HOURS_PER_YEAR / 2, 0.5]
+        # Bounds: hours in [0, max_hours], speeding in [0, 1]
+        bounds = [(0, self.max_hours), (1e-6, 1 - 1e-6)]
 
-        # Run optimization
-        result = optimize.minimize(objective, x0, method="L-BFGS-B", bounds=bounds)
+        result = minimize(
+            neg_utility,
+            x0,
+            method="L-BFGS-B",
+            bounds=bounds,
+            options={"ftol": 1e-10, "gtol": 1e-8},
+        )
 
-        if not result.success:
-            # Fall back to simpler method if L-BFGS-B fails
-            result = optimize.minimize(
-                objective, x0, method="Nelder-Mead", bounds=bounds
-            )
+        self._optimal_hours = float(result.x[0])
+        self._optimal_speeding = float(result.x[1])
 
-        # Store results
-        self.labor_hours, self.speeding = result.x
-        self.utility = -result.fun
+        return self._optimal_hours, self._optimal_speeding
 
-        # Calculate fine paid
-        gross_income = self.wage_rate * self.labor_hours
-        self.fine_paid = fine_function(gross_income) * self.speeding
+    @property
+    def optimal_hours(self) -> float | None:
+        """Return cached optimal hours."""
+        return self._optimal_hours
 
-        return self.labor_hours, self.speeding, self.utility
-
-    def get_effective_mtr(self, fine_function: Callable, tax_rate: float) -> float:
-        """
-        Calculate the effective marginal tax rate faced by the agent.
-
-        Parameters
-        ----------
-        fine_function : Callable
-            Function mapping income to fine amount
-        tax_rate : float
-            Explicit tax rate
-
-        Returns
-        -------
-        float
-            Effective marginal tax rate including fine effects
-        """
-        gross_income = self.wage_rate * self.labor_hours
-
-        # Calculate marginal fine rate (derivative of fine function)
-        epsilon = 1.0  # Small income change
-        fine_base = fine_function(gross_income)
-        fine_marginal = fine_function(gross_income + epsilon)
-        marginal_fine_rate = (fine_marginal - fine_base) / epsilon * self.speeding
-
-        return tax_rate + marginal_fine_rate
+    @property
+    def optimal_speeding(self) -> float | None:
+        """Return cached optimal speeding."""
+        return self._optimal_speeding

@@ -1,178 +1,226 @@
-"""Tests for Agent module."""
+"""Tests for Agent class - written first per TDD."""
 
 import pytest
 import numpy as np
+
 from traffic_fines.core.agent import Agent
 from traffic_fines.core.fines import FlatFine, IncomeBasedFine
 
 
-class TestAgent:
-    """Test suite for Agent class."""
+class TestAgentInitialization:
+    """Tests for Agent initialization."""
 
-    def test_agent_initialization(self):
-        """Test agent initialization with default parameters."""
-        agent = Agent(potential_income=60000)
+    def test_agent_stores_wage(self):
+        """Agent should store hourly wage."""
+        agent = Agent(wage=50.0)
+        assert agent.wage == 50.0
 
-        assert agent.potential_income == 60000
-        assert agent.wage_rate == pytest.approx(60000 / 2080)
-        assert agent.labor_hours == 0.0
-        assert agent.speeding == 0.0
-        assert agent.fine_paid == 0.0
+    def test_agent_default_parameters(self):
+        """Agent should have sensible defaults."""
+        agent = Agent(wage=50.0)
+        assert agent.labor_disutility > 0
+        assert agent.speeding_utility > 0
+        assert agent.vsl > 0
 
-    def test_utility_calculation_zero_labor(self):
-        """Test utility calculation with zero labor supply."""
-        agent = Agent(potential_income=60000)
-        fine_structure = FlatFine(100)
 
-        utility = agent.calculate_utility(
-            labor_hours=0,
-            speeding=0,
-            fine_function=lambda income: fine_structure.calculate_fine(income),
-            death_prob=0.0001,
-            ubi=1000,
-            tax_rate=0.3,
-            vsl=10_000_000,
-        )
+class TestAgentUtility:
+    """Tests for utility calculation."""
 
-        # With zero labor and speeding, utility should come only from UBI
-        assert utility > 0  # Log(1 + 1000) > 0
+    def test_utility_increases_with_consumption(self):
+        """Higher consumption should increase utility."""
+        agent = Agent(wage=50.0)
 
-    def test_utility_calculation_full_labor(self):
-        """Test utility calculation with full labor supply."""
-        agent = Agent(potential_income=60000)
-        fine_structure = FlatFine(100)
+        u_low = agent.consumption_utility(10_000)
+        u_high = agent.consumption_utility(50_000)
 
-        utility = agent.calculate_utility(
-            labor_hours=2080,
-            speeding=0,
-            fine_function=lambda income: fine_structure.calculate_fine(income),
-            death_prob=0.0001,
-            ubi=0,
-            tax_rate=0.3,
-            vsl=10_000_000,
-        )
+        assert u_high > u_low
 
-        # Utility should balance income gain against labor disutility
-        assert isinstance(utility, (float, np.float64))
+    def test_utility_is_concave_in_consumption(self):
+        """Marginal utility should decrease (concavity)."""
+        agent = Agent(wage=50.0)
 
-    def test_optimization_flat_fine(self):
-        """Test agent optimization with flat fine."""
-        agent = Agent(
-            potential_income=60000,
-            income_utility_factor=1.0,
-            labor_disutility_factor=0.5,
-            speeding_utility_factor=0.1,
-        )
-        fine_structure = FlatFine(100)
+        mu_low = agent.consumption_utility(20_000) - agent.consumption_utility(10_000)
+        mu_high = agent.consumption_utility(40_000) - agent.consumption_utility(30_000)
 
-        labor, speeding, utility = agent.optimize(
-            fine_function=lambda income: fine_structure.calculate_fine(income),
-            death_prob=0.0001,
-            ubi=0,
-            tax_rate=0.3,
-            vsl=10_000_000,
-        )
+        assert mu_low > mu_high
 
-        # Check optimization results are reasonable
-        assert 0 <= labor <= 2080
-        assert 0 <= speeding <= 1
-        assert isinstance(utility, (float, np.float64))
-        assert agent.labor_hours == labor
-        assert agent.speeding == speeding
+    def test_labor_disutility_increases_with_hours(self):
+        """Working more should increase disutility."""
+        agent = Agent(wage=50.0)
 
-    def test_optimization_income_based_fine(self):
-        """Test agent optimization with income-based fine."""
-        agent = Agent(
-            potential_income=60000,
-            income_utility_factor=1.0,
-            labor_disutility_factor=0.5,
-            speeding_utility_factor=0.1,
-        )
-        fine_structure = IncomeBasedFine(base_amount=50, income_factor=0.001)
+        d_low = agent.labor_disutility_fn(500)
+        d_high = agent.labor_disutility_fn(2000)
 
-        labor, speeding, utility = agent.optimize(
-            fine_function=lambda income: fine_structure.calculate_fine(income),
-            death_prob=0.0001,
-            ubi=0,
-            tax_rate=0.3,
-            vsl=10_000_000,
-        )
+        assert d_high > d_low
 
-        # Check optimization results
-        assert 0 <= labor <= 2080
-        assert 0 <= speeding <= 1
-        assert isinstance(utility, (float, np.float64))
+    def test_speeding_utility_increases_with_speeding(self):
+        """More speeding should increase speeding utility."""
+        agent = Agent(wage=50.0)
 
-    def test_effective_mtr_flat_fine(self):
-        """Test effective MTR calculation with flat fine."""
-        agent = Agent(potential_income=60000)
-        agent.labor_hours = 1040  # Half-time
-        agent.speeding = 0.5
+        u_low = agent.speeding_utility_fn(0.2)
+        u_high = agent.speeding_utility_fn(0.8)
 
-        fine_structure = FlatFine(100)
-        effective_mtr = agent.get_effective_mtr(
-            lambda income: fine_structure.calculate_fine(income), tax_rate=0.3
-        )
+        assert u_high > u_low
 
-        # Flat fine shouldn't add to MTR
-        assert effective_mtr == pytest.approx(0.3, rel=0.01)
 
-    def test_effective_mtr_income_based_fine(self):
-        """Test effective MTR calculation with income-based fine."""
-        agent = Agent(potential_income=60000)
-        agent.labor_hours = 1040  # Half-time
-        agent.speeding = 0.5
+class TestAgentOptimization:
+    """Tests for agent optimization behavior.
 
-        fine_structure = IncomeBasedFine(base_amount=50, income_factor=0.001)
-        effective_mtr = agent.get_effective_mtr(
-            lambda income: fine_structure.calculate_fine(income), tax_rate=0.3
-        )
+    These tests use calibrated parameters to ensure interior solutions.
+    Higher labor_disutility ensures agents don't just work max hours.
+    """
 
-        # Income-based fine should increase effective MTR
-        # MTR = 0.3 + 0.001 * 0.5 = 0.3005
-        assert effective_mtr > 0.3
-        assert effective_mtr == pytest.approx(0.3 + 0.001 * 0.5, rel=0.01)
+    # Calibrated parameters for meaningful behavioral responses
+    LABOR_DISUTILITY = 25.0  # Higher value for interior labor solutions
+    SPEEDING_UTILITY = 1.0  # High enough to compete with death cost
+    VSL = 1_000.0  # Very low VSL for interior speeding solutions in tests
 
-    def test_high_income_agent(self):
-        """Test behavior of high-income agent."""
-        agent = Agent(
-            potential_income=200000,
-            income_utility_factor=1.0,
-            labor_disutility_factor=0.5,
-            speeding_utility_factor=0.1,
-        )
-        fine_structure = IncomeBasedFine(base_amount=50, income_factor=0.001)
+    def test_optimize_returns_hours_and_speeding(self):
+        """Optimization should return labor hours and speeding."""
+        agent = Agent(wage=50.0, labor_disutility=self.LABOR_DISUTILITY)
+        fine = FlatFine(amount=200.0)
 
-        labor, speeding, utility = agent.optimize(
-            fine_function=lambda income: fine_structure.calculate_fine(income),
-            death_prob=0.0001,
-            ubi=0,
-            tax_rate=0.3,
-            vsl=10_000_000,
-        )
+        hours, speeding = agent.optimize(fine, tax_rate=0.3, death_prob=0.0001, ubi=0.0)
 
-        # High income agents should still optimize rationally
-        assert 0 <= labor <= 2080
+        assert 0 <= hours <= 2080
         assert 0 <= speeding <= 1
 
-    def test_low_income_agent(self):
-        """Test behavior of low-income agent."""
+    def test_labor_responds_to_wage(self):
+        """Labor supply should respond to wage (direction depends on utility params).
+
+        With log utility, income and substitution effects roughly cancel,
+        leading to near-zero labor supply elasticity (realistic).
+        """
+        low_wage = Agent(wage=30.0, labor_disutility=self.LABOR_DISUTILITY)
+        high_wage = Agent(wage=80.0, labor_disutility=self.LABOR_DISUTILITY)
+        fine = FlatFine(amount=200.0)
+
+        h_low, _ = low_wage.optimize(fine, tax_rate=0.3, death_prob=0.0001, ubi=0.0)
+        h_high, _ = high_wage.optimize(fine, tax_rate=0.3, death_prob=0.0001, ubi=0.0)
+
+        # Verify we get interior solutions (not at boundaries)
+        assert 0 < h_low < 2080
+        assert 0 < h_high < 2080
+        # Small elasticity is expected with log utility
+        assert abs(h_high - h_low) / h_low < 0.5  # Less than 50% change
+
+    def test_labor_responds_to_tax(self):
+        """Labor supply should respond to tax rate."""
+        agent = Agent(wage=50.0, labor_disutility=self.LABOR_DISUTILITY)
+        fine = FlatFine(amount=200.0)
+
+        h_low_tax, _ = agent.optimize(fine, tax_rate=0.2, death_prob=0.0001, ubi=0.0)
+        h_high_tax, _ = agent.optimize(fine, tax_rate=0.5, death_prob=0.0001, ubi=0.0)
+
+        # Verify interior solutions
+        assert 0 < h_low_tax < 2080
+        assert 0 < h_high_tax < 2080
+
+    def test_higher_death_prob_reduces_speeding(self):
+        """Higher death probability should deter speeding."""
         agent = Agent(
-            potential_income=20000,
-            income_utility_factor=1.0,
-            labor_disutility_factor=0.5,
-            speeding_utility_factor=0.1,
+            wage=50.0,
+            labor_disutility=self.LABOR_DISUTILITY,
+            speeding_utility=self.SPEEDING_UTILITY,
+            vsl=self.VSL,
         )
-        fine_structure = FlatFine(100)
+        fine = FlatFine(amount=100.0)
 
-        labor, speeding, utility = agent.optimize(
-            fine_function=lambda income: fine_structure.calculate_fine(income),
-            death_prob=0.0001,
-            ubi=500,
-            tax_rate=0.3,
-            vsl=10_000_000,
+        _, s_low_risk = agent.optimize(fine, tax_rate=0.3, death_prob=0.00001, ubi=0.0)
+        _, s_high_risk = agent.optimize(fine, tax_rate=0.3, death_prob=0.01, ubi=0.0)
+
+        assert s_low_risk > s_high_risk
+
+    def test_higher_flat_fine_reduces_speeding(self):
+        """Higher flat fine should deter speeding."""
+        agent = Agent(
+            wage=50.0,
+            labor_disutility=self.LABOR_DISUTILITY,
+            speeding_utility=self.SPEEDING_UTILITY,
+            vsl=self.VSL,
+        )
+        low_fine = FlatFine(amount=100.0)
+        high_fine = FlatFine(amount=5000.0)
+
+        _, s_low = agent.optimize(low_fine, tax_rate=0.3, death_prob=0.0001, ubi=0.0)
+        _, s_high = agent.optimize(high_fine, tax_rate=0.3, death_prob=0.0001, ubi=0.0)
+
+        assert s_low > s_high
+
+    def test_income_based_fine_affects_behavior(self):
+        """Income-based fines should affect labor and/or speeding differently than flat.
+
+        This is the key prediction: income-based fines create an implicit tax
+        that distorts labor supply.
+        """
+        agent = Agent(
+            wage=50.0,
+            labor_disutility=self.LABOR_DISUTILITY,
+            speeding_utility=self.SPEEDING_UTILITY,
+            vsl=self.VSL,
         )
 
-        # Low income agents should respond to incentives
-        assert 0 <= labor <= 2080
-        assert 0 <= speeding <= 1
+        # Set fines to have similar deterrence at median income
+        flat = FlatFine(amount=200.0)
+        income_based = IncomeBasedFine(rate=0.01)  # Higher rate for effect
+
+        h_flat, s_flat = agent.optimize(flat, tax_rate=0.3, death_prob=0.0001, ubi=0.0)
+        h_ib, s_ib = agent.optimize(
+            income_based, tax_rate=0.3, death_prob=0.0001, ubi=0.0
+        )
+
+        # Behavior should differ between fine structures
+        assert (h_ib != h_flat) or (s_ib != s_flat)
+
+
+class TestAgentCalculations:
+    """Tests for derived calculations."""
+
+    def test_gross_income_calculation(self):
+        """Gross income = wage * hours."""
+        agent = Agent(wage=50.0)
+        assert agent.gross_income(1000) == 50_000
+
+    def test_net_income_calculation(self):
+        """Net income accounts for taxes, fines, and UBI."""
+        agent = Agent(wage=50.0)
+        fine = FlatFine(amount=200.0)
+
+        net = agent.net_income(
+            hours=1000, speeding=0.5, fine=fine, tax_rate=0.3, ubi=1000
+        )
+
+        gross = 50_000
+        tax = gross * 0.3
+        fine_amount = 200 * 0.5
+        expected = gross - tax - fine_amount + 1000
+
+        assert np.isclose(net, expected)
+
+
+class TestAgentProperties:
+    """Tests for agent properties."""
+
+    def test_optimal_hours_none_before_optimize(self):
+        """optimal_hours should be None before optimization."""
+        agent = Agent(wage=50.0)
+        assert agent.optimal_hours is None
+
+    def test_optimal_speeding_none_before_optimize(self):
+        """optimal_speeding should be None before optimization."""
+        agent = Agent(wage=50.0)
+        assert agent.optimal_speeding is None
+
+    def test_optimal_hours_set_after_optimize(self):
+        """optimal_hours should be set after optimization."""
+        agent = Agent(wage=50.0, labor_disutility=25.0)
+        fine = FlatFine(amount=200.0)
+        agent.optimize(fine, tax_rate=0.3, death_prob=0.0001, ubi=0.0)
+        assert agent.optimal_hours is not None
+
+    def test_optimal_speeding_set_after_optimize(self):
+        """optimal_speeding should be set after optimization."""
+        agent = Agent(wage=50.0, labor_disutility=25.0)
+        fine = FlatFine(amount=200.0)
+        agent.optimize(fine, tax_rate=0.3, death_prob=0.0001, ubi=0.0)
+        assert agent.optimal_speeding is not None

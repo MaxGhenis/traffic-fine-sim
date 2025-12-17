@@ -1,0 +1,51 @@
+version: 1
+
+project:
+  title: "Optimal Income-Based Traffic Fines with Labor Supply Responses"
+  authors:
+    - name: Max Ghenis
+  description: >
+    We develop a model where heterogeneous agents optimize labor supply and
+    speeding behavior under different fine structures. Income-based fines create
+    an implicit marginal tax on labor income, creating efficiency costs that must
+    be weighed against their superior deterrence properties.
+  keywords:
+    - traffic fines
+    - optimal taxation
+    - income-based penalties
+    - labor supply
+    - welfare economics
+
+  github: https://github.com/MaxGhenis/traffic-fine-sim
+
+  toc:
+    - file: index.md
+    - title: Introduction
+      file: 01_introduction.md
+    - title: Literature Review
+      file: 02_literature_review.md
+    - title: Theoretical Model
+      file: 03_theoretical_model.md
+    - title: Calibration
+      file: 04_calibration.md
+    - title: Results
+      file: 05_results.ipynb
+    - title: Discussion
+      file: 06_discussion.md
+    - title: Conclusion
+      file: 07_conclusion.md
+    - title: Appendix
+      children:
+        - file: appendix_code.md
+        - file: appendix_robustness.md
+
+  bibliography:
+    - references.bib
+
+site:
+  template: book-theme
+
+build:
+  execute:
+    enabled: true
+    timeout: 600

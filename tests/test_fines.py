@@ -1,162 +1,95 @@
-"""Tests for fine structures."""
+"""Tests for fine structures - written first per TDD."""
 
 import pytest
 import numpy as np
-from traffic_fines.core.fines import FlatFine, IncomeBasedFine, ProgressiveFine
+
+from traffic_fines.core.fines import FineStructure, FlatFine, IncomeBasedFine
 
 
 class TestFlatFine:
-    """Test suite for FlatFine class."""
+    """Tests for flat fine structure."""
 
-    def test_initialization(self):
-        """Test flat fine initialization."""
-        fine = FlatFine(fine_amount=150)
-        assert fine.fine_amount == 150
+    def test_calculate_fine_independent_of_income(self):
+        """Flat fine should be the same regardless of income."""
+        fine = FlatFine(amount=200.0)
 
-    def test_calculate_fine(self):
-        """Test flat fine calculation."""
-        fine = FlatFine(fine_amount=200)
+        assert fine.calculate(income=30_000, speeding=0.5) == 200.0 * 0.5
+        assert fine.calculate(income=100_000, speeding=0.5) == 200.0 * 0.5
 
-        # Should be same for all incomes
-        assert fine.calculate_fine(0) == 200
-        assert fine.calculate_fine(30000) == 200
-        assert fine.calculate_fine(100000) == 200
+    def test_calculate_fine_scales_with_speeding(self):
+        """Fine should scale linearly with speeding intensity."""
+        fine = FlatFine(amount=200.0)
 
-    def test_parameters(self):
-        """Test parameter getting and setting."""
-        fine = FlatFine(100)
+        assert fine.calculate(income=50_000, speeding=0.0) == 0.0
+        assert fine.calculate(income=50_000, speeding=0.5) == 100.0
+        assert fine.calculate(income=50_000, speeding=1.0) == 200.0
 
-        params = fine.get_parameters()
-        assert params == [100]
+    def test_marginal_rate_is_zero(self):
+        """Flat fine has zero marginal rate on income."""
+        fine = FlatFine(amount=200.0)
 
-        fine.set_parameters([250])
-        assert fine.fine_amount == 250
-        assert fine.calculate_fine(50000) == 250
+        assert fine.marginal_rate(income=30_000, speeding=0.5) == 0.0
+        assert fine.marginal_rate(income=100_000, speeding=0.5) == 0.0
 
-    def test_marginal_rate(self):
-        """Test marginal rate calculation."""
-        fine = FlatFine(100)
+    def test_effective_tax_rate_equals_base_tax(self):
+        """Effective tax rate should equal base tax rate for flat fines."""
+        fine = FlatFine(amount=200.0)
+        base_tax = 0.30
 
-        # Marginal rate should always be zero
-        assert fine.get_marginal_rate(0) == 0
-        assert fine.get_marginal_rate(50000) == 0
-        assert fine.get_marginal_rate(100000) == 0
-
-    def test_invalid_parameters(self):
-        """Test error handling for invalid parameters."""
-        fine = FlatFine(100)
-
-        with pytest.raises(ValueError):
-            fine.set_parameters([100, 200])  # Too many parameters
+        assert fine.effective_tax_rate(base_tax, income=50_000, speeding=0.5) == 0.30
 
 
 class TestIncomeBasedFine:
-    """Test suite for IncomeBasedFine class."""
+    """Tests for income-based fine structure."""
 
-    def test_initialization(self):
-        """Test income-based fine initialization."""
-        fine = IncomeBasedFine(base_amount=50, income_factor=0.002)
-        assert fine.base_amount == 50
-        assert fine.income_factor == 0.002
+    def test_calculate_fine_scales_with_income(self):
+        """Income-based fine should scale with income."""
+        fine = IncomeBasedFine(rate=0.002)
 
-    def test_calculate_fine(self):
-        """Test income-based fine calculation."""
-        fine = IncomeBasedFine(base_amount=100, income_factor=0.001)
+        low_income_fine = fine.calculate(income=30_000, speeding=0.5)
+        high_income_fine = fine.calculate(income=100_000, speeding=0.5)
 
-        # Fine should increase with income
-        assert fine.calculate_fine(0) == 100
-        assert fine.calculate_fine(50000) == 100 + 50
-        assert fine.calculate_fine(100000) == 100 + 100
+        assert high_income_fine > low_income_fine
+        assert np.isclose(low_income_fine, 30_000 * 0.002 * 0.5)
+        assert np.isclose(high_income_fine, 100_000 * 0.002 * 0.5)
 
-    def test_parameters(self):
-        """Test parameter getting and setting."""
-        fine = IncomeBasedFine(100, 0.001)
+    def test_calculate_fine_scales_with_speeding(self):
+        """Fine should scale with speeding intensity."""
+        fine = IncomeBasedFine(rate=0.002)
 
-        params = fine.get_parameters()
-        assert params == [100, 0.001]
+        assert fine.calculate(income=50_000, speeding=0.0) == 0.0
+        assert fine.calculate(income=50_000, speeding=1.0) == 50_000 * 0.002
 
-        fine.set_parameters([200, 0.002])
-        assert fine.base_amount == 200
-        assert fine.income_factor == 0.002
-        assert fine.calculate_fine(50000) == 200 + 100
+    def test_marginal_rate_equals_rate_times_speeding(self):
+        """Marginal rate on income is rate * speeding."""
+        fine = IncomeBasedFine(rate=0.002)
 
-    def test_marginal_rate(self):
-        """Test marginal rate calculation."""
-        fine = IncomeBasedFine(100, 0.003)
+        assert fine.marginal_rate(income=50_000, speeding=0.5) == 0.002 * 0.5
+        assert fine.marginal_rate(income=100_000, speeding=0.5) == 0.002 * 0.5
 
-        # Marginal rate should equal income_factor
-        assert fine.get_marginal_rate(0) == 0.003
-        assert fine.get_marginal_rate(50000) == 0.003
-        assert fine.get_marginal_rate(100000) == 0.003
+    def test_effective_tax_rate_increases_with_speeding(self):
+        """Effective tax rate should increase as speeding increases."""
+        fine = IncomeBasedFine(rate=0.002)
+        base_tax = 0.30
 
-    def test_progressive_effect(self):
-        """Test that fine amount increases with income."""
-        fine = IncomeBasedFine(50, 0.002)
+        etr_no_speed = fine.effective_tax_rate(base_tax, income=50_000, speeding=0.0)
+        etr_half_speed = fine.effective_tax_rate(base_tax, income=50_000, speeding=0.5)
+        etr_full_speed = fine.effective_tax_rate(base_tax, income=50_000, speeding=1.0)
 
-        low_income = 20000
-        high_income = 100000
-
-        low_fine = fine.calculate_fine(low_income)
-        high_fine = fine.calculate_fine(high_income)
-
-        # Absolute fine amount should increase with income
-        assert high_fine > low_fine
-        
-        # With base amount, effective rate actually decreases
-        # This is expected: (base + factor*income)/income decreases as income rises
-        low_rate = low_fine / low_income
-        high_rate = high_fine / high_income
-        assert low_rate > high_rate
+        assert etr_no_speed == 0.30
+        assert etr_half_speed == 0.30 + 0.002 * 0.5
+        assert etr_full_speed == 0.30 + 0.002
 
 
-class TestProgressiveFine:
-    """Test suite for ProgressiveFine class."""
+class TestFineStructureInterface:
+    """Tests for the abstract FineStructure interface."""
 
-    def test_initialization(self):
-        """Test progressive fine initialization."""
-        fine = ProgressiveFine()
-        assert len(fine.brackets) == len(fine.rates)
+    def test_flat_fine_is_fine_structure(self):
+        """FlatFine should implement FineStructure."""
+        fine = FlatFine(amount=200.0)
+        assert isinstance(fine, FineStructure)
 
-    def test_custom_brackets(self):
-        """Test progressive fine with custom brackets."""
-        brackets = [0, 25000, 75000]
-        rates = [0.001, 0.003, 0.005]
-        fine = ProgressiveFine(brackets, rates)
-
-        assert fine.brackets == brackets
-        assert fine.rates == rates
-
-    def test_calculate_fine(self):
-        """Test progressive fine calculation."""
-        brackets = [0, 30000, 60000]
-        rates = [0.001, 0.002, 0.004]
-        fine = ProgressiveFine(brackets, rates)
-
-        # Test various incomes
-        assert fine.calculate_fine(20000) == 20000 * 0.001
-        assert fine.calculate_fine(40000) == 30000 * 0.001 + 10000 * 0.002
-        assert (
-            fine.calculate_fine(70000) == 30000 * 0.001 + 30000 * 0.002 + 10000 * 0.004
-        )
-
-    def test_marginal_rate(self):
-        """Test marginal rate at different income levels."""
-        brackets = [0, 30000, 60000]
-        rates = [0.001, 0.002, 0.004]
-        fine = ProgressiveFine(brackets, rates)
-
-        assert fine.get_marginal_rate(20000) == 0.001
-        assert fine.get_marginal_rate(40000) == 0.002
-        assert fine.get_marginal_rate(70000) == 0.004
-
-    def test_progressivity(self):
-        """Test that fine structure is truly progressive."""
-        fine = ProgressiveFine()
-
-        incomes = [20000, 50000, 100000, 200000]
-        fines = [fine.calculate_fine(inc) for inc in incomes]
-        rates = [f / i for f, i in zip(fines, incomes)]
-
-        # Average rates should increase with income
-        for i in range(len(rates) - 1):
-            assert rates[i + 1] > rates[i]
+    def test_income_based_fine_is_fine_structure(self):
+        """IncomeBasedFine should implement FineStructure."""
+        fine = IncomeBasedFine(rate=0.002)
+        assert isinstance(fine, FineStructure)
