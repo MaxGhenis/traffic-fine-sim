@@ -44,9 +44,9 @@ where `y_monthly` is monthly income and `s` is the severity factor.
 
 **Speeding elasticity**: Based on {cite}`kaila2024`'s findings, we calibrate the utility from speeding to generate an elasticity of -0.075 in the short run. This relatively low elasticity suggests that speeding behavior is not highly responsive to fine amounts, consistent with information frictions or habitual behavior.
 
-**Labor supply elasticity**: While Finland-specific estimates are limited, we use the consensus range from the labor economics literature of 0.2-0.4 for the intensive margin elasticity. Finland's high labor force participation suggests using the lower end of this range (0.25) for our baseline.
+**Labor supply elasticity**: While Finland-specific estimates are limited, we use the consensus range from the labor economics literature of 0.2-0.4 for the intensive margin elasticity {cite}`chetty2012`. Finland's high labor force participation suggests using the lower end of this range (0.25) for our baseline.
 
-**Value of Statistical Life (VSL)**: We adopt the European Commission's recommended VSL of €3.6 million for Finland, adjusted to our model's units.
+**Value of Statistical Life (VSL)**: We adopt the European Commission's recommended VSL of €3.6 million for Finland {cite}`eu_vsl_2014`, adjusted to our model's units.
 
 ### Tax Environment
 
