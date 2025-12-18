@@ -45,6 +45,9 @@ paper = [
 app = [
     # React app dependencies handled separately via bun
 ]
+policyengine = [
+    "policyengine-us>=1.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/MaxGhenis/traffic-fine-sim"

@@ -34,6 +34,7 @@ class Agent:
         speeding_utility: float = DEFAULT_PARAMS.speeding_utility,
         vsl: float = DEFAULT_PARAMS.vsl,
         max_hours: float = DEFAULT_PARAMS.max_hours,
+        mtr: Optional[float] = None,
     ):
         """Initialize agent.
 
@@ -43,12 +44,14 @@ class Agent:
             speeding_utility: Alpha parameter for v(s) = alpha * log(1 + s)
             vsl: Value of statistical life
             max_hours: Maximum annual work hours (default 2080)
+            mtr: Marginal tax rate (if None, uses society-level tax_rate)
         """
         self.wage = wage
         self.labor_disutility = labor_disutility
         self.speeding_utility = speeding_utility
         self.vsl = vsl
         self.max_hours = max_hours
+        self.mtr = mtr
 
         # Cached optimization results
         self._optimal_hours: Optional[float] = None
@@ -108,14 +111,16 @@ class Agent:
             hours: Work hours
             speeding: Speeding intensity [0, 1]
             fine: Fine structure
-            tax_rate: Income tax rate
+            tax_rate: Income tax rate (used if agent.mtr is None)
             ubi: Universal basic income transfer
 
         Returns:
             Net income (consumption)
         """
         gross = self.gross_income(hours)
-        tax = gross * tax_rate
+        # Use agent's MTR if set, otherwise use passed tax_rate
+        effective_rate = self.mtr if self.mtr is not None else tax_rate
+        tax = gross * effective_rate
         fine_amount = fine.calculate(gross, speeding)
         return gross - tax - fine_amount + ubi
 
