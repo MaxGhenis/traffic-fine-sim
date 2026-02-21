@@ -34,8 +34,10 @@ def main() -> None:
     sim = Microsimulation()
 
     print("Extracting variables from CPS microdata...")
+    # Use household_weight (calibrated via microcalibrate) rather than
+    # person_weight (raw CPS weight, not calibrated to population totals)
     df = sim.calculate_dataframe(
-        ["employment_income", "marginal_tax_rate", "age", "person_weight"]
+        ["employment_income", "marginal_tax_rate", "age", "household_weight"]
     )
 
     print(f"Total CPS records: {len(df):,}")
@@ -43,6 +45,9 @@ def main() -> None:
     # Filter to working-age adults (18-64) with positive employment income
     mask = (df["age"] >= 18) & (df["age"] <= 64) & (df["employment_income"] > 0)
     df = df[mask].copy()
+    # Rename to person_weight for downstream code (each person inherits
+    # their household's calibrated weight)
+    df = df.rename(columns={"household_weight": "person_weight"})
     print(f"Working-age adults with employment income > 0: {len(df):,}")
 
     # Clip marginal tax rates to [0, 0.95]

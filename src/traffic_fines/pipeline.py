@@ -85,9 +85,9 @@ def run_analysis(
     5. Compare optimal flat vs optimal income-based
     """
     if flat_grid is None:
-        flat_grid = [50, 100, 200, 500, 1000, 2000]
+        flat_grid = [50, 100, 200, 500, 1000, 1500, 2000, 3000, 5000]
     if ib_grid is None:
-        ib_grid = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05]
+        ib_grid = [0.001, 0.005, 0.01, 0.02, 0.03, 0.05, 0.08, 0.1]
 
     rng = np.random.default_rng(seed)
     priors = load_priors()

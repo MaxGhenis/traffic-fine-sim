@@ -4,20 +4,15 @@ title: Calibration
 
 # Calibration
 
-We calibrate the model to the United States, using real microdata from the Enhanced Current Population Survey (CPS) via PolicyEngine {cite}`policyengine_us2024`. Rather than fixing parameters at point estimates, we specify informative priors for behavioral parameters and propagate uncertainty through forward Monte Carlo simulation with 10,000 draws. The key innovation is using empirically estimated per-agent marginal tax rates that capture the full complexity of the US tax-benefit system.
+We calibrate the model to the United States, using real microdata from the Enhanced Current Population Survey (CPS) via PolicyEngine {cite}`policyengine_us2024`. Rather than fixing parameters at point estimates, we specify informative priors for behavioral parameters and propagate uncertainty through forward Monte Carlo simulation. The key innovation is using empirically estimated per-agent marginal tax rates that capture the full complexity of the US tax-benefit system.
 
 ## Income distribution and marginal tax rates
 
 ### CPS microdata
 
-Agent wages and tax rates are drawn from the Enhanced CPS microdata, processed through PolicyEngine's US microsimulation model {cite}`policyengine_us2024,census_cps2024`. We restrict the sample to working-age adults (18--64) with positive employment income, yielding approximately 70,000 observations representing the US working population.
+Agent wages and tax rates are drawn from the Enhanced CPS microdata, processed through PolicyEngine's US microsimulation model {cite}`policyengine_us2024,census_cps2024`. We restrict the sample to working-age adults (18--64) with positive employment income, yielding approximately 19,400 observations representing the US working population.
 
-For each observation, PolicyEngine computes the marginal tax rate accounting for:
-- Federal income tax (including bracket structure and standard deduction)
-- State income taxes (varying across all 50 states plus DC)
-- FICA payroll taxes (Social Security 6.2% + Medicare 1.45%, with Social Security cap)
-- Earned Income Tax Credit phase-in and phase-out
-- Benefit phase-outs (SNAP, Medicaid, housing assistance, etc.)
+For each observation, PolicyEngine computes the marginal tax rate accounting for federal income tax (including bracket structure and standard deduction), state income taxes (varying across all 50 states plus DC), Federal Insurance Contributions Act (FICA) payroll taxes (Social Security 6.2% plus Medicare 1.45%, with the Social Security wage cap), Earned Income Tax Credit (EITC) phase-in and phase-out, and benefit phase-outs including the Supplemental Nutrition Assistance Program (SNAP), Medicaid, and housing assistance.
 
 The resulting MTR distribution is dramatically heterogeneous. Workers in the EITC phase-out region face effective marginal rates near 40% {cite}`maag_etal2012`, while some middle-income workers above the EITC range but below higher tax brackets face rates around 22--25%. High earners face combined federal-state rates of 40--50%. This heterogeneity is a key empirical contribution: it means income-based fines interact very differently with the tax-benefit system at different income levels, amplifying the double distortion for workers already facing high marginal rates.
 
@@ -33,11 +28,11 @@ Hourly wages are derived as $w_i = y_i / H$ where $y_i$ is annual employment inc
 
 ### Speeding utility weight ($\alpha$)
 
-The parameter $\alpha$ governs the private benefit agents derive from speeding. We set $\alpha \sim \mathcal{N}(0.5, 0.15)$, calibrated to match observed US speeding rates. Higher values of $\alpha$ generate more speeding in equilibrium and make deterrence more valuable, tilting the comparison toward income-based fines. We choose the prior mean so that equilibrium speeding intensity is in the range 0.05--0.15, consistent with NHTSA data indicating that speeding is a factor in approximately 29% of traffic fatalities {cite}`nhtsa_fars2024`.
+The parameter $\alpha$ governs the private benefit agents derive from speeding. We set $\alpha \sim \mathcal{N}(0.5, 0.15)$. Higher values of $\alpha$ generate more speeding in equilibrium and make deterrence more valuable, tilting the comparison toward income-based fines. In our baseline calibration, equilibrium mean speeding intensity is approximately 0.39, higher than typical observed behavior (most speeders exceed limits by 5--15 mph, corresponding to $s \approx 0.08$--$0.23$). This elevated speeding arises because our model does not include detection probability or non-monetary penalties (points, license suspension), which in practice constrain speeding. The continuous fine formulation $F \cdot s$ or $\phi \cdot y \cdot s$ can be interpreted as the expected fine conditional on the full enforcement technology {cite}`becker1968`, and the implied detection probability would then scale down the equilibrium speeding intensity. We discuss the implications of this calibration in Section 6.
 
 ### Labor disutility ($\beta$)
 
-The parameter $\beta$ controls the curvature of the labor disutility function $\beta(h/H)^2/2$. We set $\beta \sim \mathcal{N}(1.0, 0.3)$, calibrated to generate Frisch elasticities in the range 0.1--0.3. At median US wages (~\$27/hour), typical hours (~1,800/year), and a median effective tax rate of ~28%, $\beta = 1.0$ yields $\varepsilon^F \approx 0.25$, consistent with the meta-analytic consensus from {cite}`chetty2012` and survey evidence from {cite}`keane2011`.
+The parameter $\beta$ controls the curvature of the labor disutility function $\beta(h/H)^2/2$. We set $\beta \sim \mathcal{N}(1.0, 0.3)$, calibrated to generate Frisch elasticities in the range 0.1--0.3. The labor supply elasticity is an *implied* quantity derived from $\beta$ and the equilibrium allocation, not a directly varied parameter. At median US wages (~\$27/hour), typical hours (~1,800/year), and a median effective tax rate of ~28%, $\beta = 1.0$ yields an implied Frisch elasticity $\varepsilon^F \approx 0.25$, consistent with the meta-analytic consensus from {cite}`chetty2012` and survey evidence from {cite}`keane2011`. Because the mapping from $\beta$ to $\varepsilon^F$ is nonlinear, the distribution of implied elasticities across Monte Carlo draws is not exactly Normal, but the central tendency is close to the target of 0.25.
 
 ### Maximum hours ($H$)
 
@@ -69,16 +64,11 @@ The income-based fine rate is $\phi = 0.02$ per unit speeding intensity. There i
 
 ## Monte Carlo procedure
 
-For each of 10,000 draws:
+For each Monte Carlo draw, the procedure is as follows. Sample $N$ agents with replacement from CPS microdata using calibrated household weights as sampling probabilities, obtaining per-agent wages $w_i$ and marginal tax rates $\text{MTR}_i$. Draw $(\alpha, \beta, V, p_{\text{base}}, n)$ independently from their Normal priors, clipping to valid ranges ($\alpha, \beta > 0.01$; $p_{\text{base}} \in [10^{-8}, 0.1]$; $n \in [0.5, 10]$). Find the welfare-maximizing flat fine $F^*$ and income-based rate $\phi^*$ by grid search. Solve mean-field equilibrium under each optimal fine system. Record utilitarian welfare, mean speeding, Gini coefficient, and equilibrium transfers for each system. Compute the welfare difference $\Delta W = W_{\text{flat}} - W_{\text{IB}}$ and its decomposition.
 
-1. Sample $N = 1{,}000$ agents with replacement from CPS microdata (weighted bootstrap), obtaining per-agent wages $w_i$ and marginal tax rates $\text{MTR}_i$.
-2. Draw $(\alpha, \beta, V, p_{\text{base}}, n)$ independently from their Normal priors, clipping to valid ranges ($\alpha, \beta > 0.01$; $p_{\text{base}} \in [10^{-8}, 0.1]$; $n \in [0.5, 10]$).
-3. Solve mean-field equilibrium under the flat fine ($F = 130$).
-4. Solve mean-field equilibrium under the income-based fine ($\phi = 0.02$).
-5. Record utilitarian welfare, mean speeding, Gini coefficient, and equilibrium transfers for each system.
-6. Compute the welfare difference $\Delta W = W_{\text{flat}} - W_{\text{IB}}$ and its decomposition.
+The baseline specification uses 100 Monte Carlo draws with 50 agents per draw. The moderate sample sizes reflect the computational cost of solving mean-field equilibrium with per-agent L-BFGS-B optimization inside a damped fixed-point iteration loop; each draw requires solving two equilibria (flat and income-based), each involving repeated optimization of all agents until convergence. The standard error of the estimated probability $\Pr(\Delta W < 0)$ at $\hat{p} = 0.94$ is approximately $\sqrt{0.94 \times 0.06 / 100} \approx 0.024$, adequate to establish the direction of the welfare comparison.
 
-Note that tax rates are **not drawn from priors**---they are empirical, fixed per agent, drawn from the CPS microdata. This is a key methodological improvement over using a single scalar tax rate parameter.
+Tax rates are **not drawn from priors**---they are empirical, fixed per agent, drawn from the CPS microdata. This is a key methodological improvement over using a single scalar tax rate parameter.
 
 {numref}`tab:priors` summarizes the prior specifications.
 
@@ -121,9 +111,9 @@ Note that tax rates are **not drawn from priors**---they are empirical, fixed pe
   - 4.0
   - 0.5
   - {cite}`nilsson2004`, {cite}`elvik2019`
-* - Labor supply elasticity
+* - Labor supply elasticity (implied)
   - $\varepsilon$
   - 0.25
-  - 0.10
-  - {cite}`chetty2012`
+  - ---
+  - {cite}`chetty2012` (target, implied by $\beta$)
 ```

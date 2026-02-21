@@ -22,7 +22,7 @@ def rawlsian_welfare(utilities: np.ndarray) -> float:
 
 
 def atkinson_welfare(
-    values: np.ndarray, epsilon: float = 0.5
+    values: np.ndarray, epsilon: float = 0.5, shift: float | None = None
 ) -> float:
     """Atkinson social welfare function applied to consumption levels.
 
@@ -34,15 +34,18 @@ def atkinson_welfare(
 
     To handle non-positive values (which can arise when passing utility
     levels rather than consumption), all values are shifted so that the
-    minimum is 1: y_shifted = y - min(y) + 1. This preserves the
-    inequality structure and ensures the power/log operations are
-    well-defined. When all values are already positive, no shift is
-    applied.
+    minimum is 1: y_shifted = y - shift + 1. When comparing two
+    distributions, pass a common shift (e.g., the minimum across both)
+    to ensure the Atkinson comparison is consistent, since the Atkinson
+    SWF is not invariant to affine transformations when epsilon != 0.
 
     Args:
         values: Array of consumption levels (or utility levels, which
             will be shifted to ensure positivity).
         epsilon: Inequality aversion parameter.
+        shift: Common floor for shifting. If None, uses min(values).
+            When comparing two distributions, compute
+            shift = min(min(A), min(B)) and pass it to both calls.
 
     Returns:
         Atkinson social welfare value.
@@ -50,9 +53,13 @@ def atkinson_welfare(
     n = len(values)
 
     # Shift values to ensure positivity if needed
-    min_val = np.min(values)
-    if min_val <= 0:
-        y = values - min_val + 1.0
+    if shift is not None:
+        floor = shift
+    else:
+        floor = np.min(values)
+
+    if floor <= 0:
+        y = values - floor + 1.0
     else:
         y = values
 

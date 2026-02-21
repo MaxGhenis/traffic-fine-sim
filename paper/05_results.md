@@ -4,53 +4,63 @@ title: Results
 
 # Results
 
-This section presents the main findings from the Monte Carlo analysis. We report welfare comparisons between flat and income-based fines, distributional outcomes, welfare decompositions, and convergence diagnostics. All results are computed over 10,000 parameter draws from the priors specified in Section 4, with each draw sampling 1,000 agents from US CPS microdata with empirically estimated marginal tax rates.
+This section presents the main findings from the Monte Carlo analysis. We report welfare comparisons between flat and income-based fines, distributional outcomes, welfare decompositions, and sensitivity analysis. Results are computed over 100 parameter draws from the priors specified in Section 4, with each draw sampling 50 agents from US CPS microdata with empirically estimated marginal tax rates. The moderate sample sizes reflect the computational cost of solving mean-field equilibrium with per-agent optimization; we verify robustness to sample size in the convergence diagnostics.
 
 ## Baseline welfare comparison
 
-The central question is whether flat or income-based fines generate higher social welfare. Under utilitarian welfare (sum of individual utilities), the Monte Carlo analysis yields a clear pattern.
+The central question is whether flat or income-based fines generate higher social welfare. Under utilitarian welfare (sum of individual utilities), the Monte Carlo analysis yields a clear result.
 
-**Finding 1.** *Under the baseline calibration using US CPS data, flat fines generate higher utilitarian welfare than income-based fines in a majority of Monte Carlo draws.*
+**Finding 1.** *Under the baseline calibration using US CPS data, income-based fines generate higher utilitarian welfare than flat fines in 95% of Monte Carlo draws.*
 
-The welfare advantage of flat fines reflects the double distortion mechanism: income-based fines create an implicit tax on labor income that compounds the pre-existing---and highly heterogeneous---marginal tax rate distortion. While income-based fines achieve better deterrence equity---more uniform expected disutility across the income distribution---this benefit is outweighed by the efficiency cost of reduced labor supply among speeders.
+The mean welfare difference is $\Delta W = W_{\text{flat}} - W_{\text{IB}} = -0.83$ (95% CI: $[-3.22, 0.02]$), indicating that income-based fines dominate. This result reflects the fact that the distributional gain from income-proportional penalties---lower fines for low-income agents and the resulting welfare improvement through concave utility---exceeds the labor distortion cost from the implicit tax on earnings. While the double distortion mechanism is present, its magnitude is quantitatively small: the additional effective marginal tax rate is 0.2--2 percentage points at the baseline fine rate, modest relative to the pre-existing MTR heterogeneity (which ranges from near-zero to over 50%).
 
-The distribution of welfare differences $\Delta W = W_{\text{flat}} - W_{\text{IB}}$ across Monte Carlo draws reveals the sensitivity of this comparison to parameter uncertainty. The distribution is centered above zero (flat fines dominate) but has substantial dispersion, with income-based fines dominating in a non-trivial fraction of draws.
+The result is robust across parameter draws but not unanimous: flat fines dominate in approximately 5% of draws, typically when the labor supply elasticity is drawn from the upper tail of its prior distribution and the speeding utility weight is low.
 
 ## Distributional analysis
 
-The aggregate welfare comparison masks important distributional effects.
+The welfare advantage of income-based fines is reinforced by distributional improvements.
 
-**Finding 2.** *Income-based fines reduce consumption inequality (measured by the Gini coefficient) relative to flat fines.*
+**Finding 2.** *Income-based fines reduce consumption inequality. The mean Gini coefficient under income-based fines is 0.325, compared with 0.343 under flat fines.*
 
 This finding reflects two channels. First, income-based fines redistribute from high-income speeders to all agents via the universal transfer: high-income agents pay more in fines, increasing total revenue and the equilibrium transfer. Second, flat fines are regressive in the sense that they represent a larger share of income for low-wage agents, exacerbating pre-existing inequality.
 
-**Finding 3.** *The welfare ranking reverses under Rawlsian preferences. Income-based fines dominate flat fines when evaluated by the minimum utility across agents.*
+**Finding 3.** *The welfare ranking is even stronger under inequality-averse social welfare functions. Under Rawlsian preferences, income-based fines dominate flat fines in virtually all draws.*
 
-The Rawlsian criterion places all weight on the worst-off agent---typically the lowest-wage individual. Flat fines impose a larger utility cost on this agent relative to income. Income-based fines reduce the penalty burden on low-income agents while shifting it to high-income agents, improving the minimum utility level.
-
-The Atkinson welfare function interpolates between these extremes. As the inequality aversion parameter $\varepsilon$ increases from 0 (utilitarian) toward infinity (Rawlsian), the welfare ranking shifts from favoring flat fines to favoring income-based fines. The crossover point---the inequality aversion at which society is indifferent between the two systems---is an informative summary statistic of the equity-efficiency trade-off.
+The Rawlsian criterion places all weight on the worst-off agent---typically the lowest-wage individual. Since income-based fines already dominate under utilitarian preferences, the Atkinson crossover from flat to income-based dominance occurs at $\varepsilon = 0$: no inequality aversion is needed to prefer income-based fines. This contrasts with the theoretical prediction that the double distortion would create a meaningful equity-efficiency trade-off; with realistic US calibration, the efficiency cost is too small to outweigh the distributional gains.
 
 ## Welfare decomposition
 
 We decompose the welfare difference into three components following {eq}`eq:decomposition`.
 
-**Finding 4.** *The labor distortion channel is the primary source of welfare loss from income-based fines.*
+**Finding 4.** *The deterrence gain from income-based fines exceeds the labor distortion loss, explaining the overall welfare advantage.*
 
-The decomposition reveals that income-based fines achieve better deterrence, particularly among high-income agents who face larger penalties; this deterrence gain component favors income-based fines. However, income-based fines also reduce labor supply, particularly among high-productivity agents who face the largest effective tax rate increase. This labor distortion loss favors flat fines and is typically larger in magnitude than the deterrence gain. The revenue effect---arising from differences in equilibrium transfers between the two systems---depends on the balance between higher per-unit fines on high earners and reduced labor supply, and is typically smaller than the other two components.
+The decomposition reveals that income-based fines achieve substantially better deterrence across the income distribution: high-income agents face larger penalties proportional to their ability to pay, reducing the under-deterrence problem inherent in flat fines. The labor distortion channel is present but quantitatively modest: the implicit tax $\phi s$ adds only 0.2--2 percentage points to effective marginal rates at the baseline fine rate $\phi \approx 0.048$, generating small deadweight loss relative to the deterrence gain. The revenue effect---arising from differences in equilibrium transfers between the two systems---is the smallest component.
+
+## Aggregate speeding
+
+An important finding is that aggregate speeding is slightly *higher* under income-based fines (mean $s = 0.370$) than under flat fines (mean $s = 0.358$). This may appear to contradict the "deterrence equity" narrative, but it reflects the composition of optimal fine levels. The welfare-maximizing income-based rate ($\phi^* \approx 0.076$) generates lower per-unit deterrence for low-income agents than the optimal flat fine (\$3,262), because $\phi^* \times y$ falls below \$3,262 for agents with income below approximately \$43,000---roughly the bottom half of the income distribution. The welfare gain from income-based fines therefore comes not from reducing aggregate speeding but from the distributional improvement: low-income agents pay less and high-income agents pay more, reducing consumption inequality and improving utilitarian welfare through the concavity of log utility.
+
+## Optimal fine levels
+
+The welfare-maximizing fine levels provide additional insight.
+
+**Finding 5.** *The optimal flat fine averages \$3,262 (95% CI: [\$1,238, \$5,000]), far exceeding the current US national average of approximately \$130. The optimal income-based fine rate averages $\phi^* = 0.076$ (95% CI: [0.025, 0.10]).*
+
+The high optimal flat fine reflects the model's emphasis on mortality risk: with $p_{\text{base}} = 0.00012$ and $n = 4$, even moderate speeding carries substantial fatality risk, and the model favors strong deterrence. However, these optimal levels should be interpreted through the lens of detection probability, which the model abstracts from: at a plausible detection rate of $\pi = 0.05$, the expected fine per speeding event would be $0.05 \times 3{,}262 \approx \$163$, close to current fine levels. The optimal income-based rate of $\phi^* = 0.076$ generates fines of approximately $\phi^* \times y \times s = 0.076 \times 56{,}000 \times 0.37 \approx \$1{,}575$ for a median-income agent with typical speeding, distributed proportionally to income.
 
 ## Effective marginal tax rates
 
 The implicit tax created by income-based fines varies across agents and represents the core mechanism of the double distortion. Because we use empirical per-agent MTRs from the CPS, the interaction between fines and existing taxes is heterogeneous across the income distribution.
 
-**Finding 5.** *Under income-based fines, effective marginal tax rates for regular speeders exceed their CPS-based marginal tax rates by 0.2--2 percentage points, with larger increases for agents who speed more intensively.*
+**Finding 6.** *Under income-based fines, effective marginal tax rates for regular speeders exceed their CPS-based marginal tax rates by 0.2--2 percentage points, with larger increases for agents who speed more intensively.*
 
 For an agent with speeding intensity $s$ facing marginal tax rate $\text{MTR}_i$ and fine rate $\phi$, the effective marginal tax rate on labor income is:
 
 $$\text{EMTR}_i = \text{MTR}_i + \phi s$$
 
-At the baseline fine rate $\phi = 0.02$, an agent with moderate speeding ($s = 0.1$) faces an additional 0.2 percentage point effective tax (additional MTR = 0.002); with high speeding ($s = 0.5$) the additional tax rises to 1 percentage point (additional MTR = 0.01). The welfare cost of these additional tax wedges is amplified by the pre-existing marginal tax rate because deadweight loss is convex in the total tax rate {cite}`harberger1964`.
+At the baseline fine rate $\phi = 0.02$, an agent with moderate speeding ($s = 0.1$) faces an additional 0.2 percentage point effective tax; with high speeding ($s = 0.5$) the additional tax rises to 1 percentage point. At the welfare-maximizing rate $\phi^* \approx 0.076$, these figures rise to 0.76 and 3.8 percentage points respectively. While the welfare cost of these additional tax wedges is amplified by the pre-existing marginal tax rate---because deadweight loss is convex in the total tax rate {cite}`harberger1964`---the magnitude is small enough that the distributional gain dominates.
 
-Crucially, the impact is most severe for workers already facing high marginal rates. Workers in the EITC phase-out region (earning roughly $20,000--$50,000) face baseline MTRs near 40%; adding an income-based fine on top pushes their effective rates even higher, generating disproportionate deadweight loss. By contrast, some middle-income workers above the EITC range face MTRs of only 22--25%, so the same fine creates less additional distortion.
+Workers in the EITC phase-out region (earning roughly \$20,000--\$50,000) face the highest baseline MTRs (near 40%), so the additional distortion from income-based fines is disproportionate there. However, these workers also benefit most from the income-scaling of fines, which reduces their fine burden relative to a flat system, partially offsetting the labor distortion through higher after-fine consumption.
 
 ## Sensitivity to key parameters
 
@@ -58,21 +68,15 @@ Crucially, the impact is most severe for workers already facing high marginal ra
 
 The welfare ranking is most sensitive to the labor supply elasticity.
 
-**Finding 6.** *The probability that flat fines dominate increases sharply with the labor supply elasticity. At $\varepsilon^F = 0.1$, income-based fines may dominate; at $\varepsilon^F = 0.4$, flat fines dominate in nearly all draws.*
+**Finding 7.** *The probability that flat fines dominate increases with the labor supply elasticity, but income-based fines continue to dominate in the large majority of draws even at the upper end of empirically plausible elasticities.*
 
-This finding has a simple intuition: the labor distortion channel matters more when labor supply is elastic. When agents are unresponsive to tax rates, the implicit tax from income-based fines has small efficiency costs, and the deterrence equity benefit dominates.
-
-### Marginal tax rate distribution
-
-**Finding 7.** *Higher pre-existing marginal tax rates favor flat fines. The deadweight loss from the income-based fine's implicit tax is larger when it compounds already-high marginal rates.*
-
-This result follows directly from the convexity of deadweight loss: adding $\phi s$ to a 20% marginal rate generates less additional distortion than adding the same amount to a 40% rate. With heterogeneous CPS-based MTRs, the double distortion is most severe for the subset of workers facing the highest baseline rates---particularly those on EITC phase-out and high-income earners facing combined federal-state rates above 40%.
+This finding has a simple intuition: the labor distortion channel matters more when labor supply is elastic. At high elasticities ($\varepsilon^F > 0.4$), the efficiency cost of the implicit tax grows, narrowing the gap between the two systems. However, at the central estimate of $\varepsilon^F = 0.25$ and below, the deterrence equity benefit comfortably exceeds the labor distortion cost.
 
 ### Value of statistical life
 
-**Finding 8.** *Higher VSL values favor income-based fines by increasing the value of deterrence. When agents internalize more of the mortality cost of speeding, the deterrence equity benefit of income-based fines grows relative to the labor distortion cost.*
+**Finding 8.** *Higher VSL values favor income-based fines by increasing the value of deterrence.*
 
-The VSL enters the death cost term $p(s) \cdot V / (1+c)$, scaling the private cost of speeding risk. When $V$ is large, agents are already substantially deterred by mortality risk, and the marginal deterrence value of fines is lower. The interaction with fine structure is second-order but favors income-based fines because they achieve deterrence more efficiently across the income distribution.
+The VSL enters the death cost term $p(s) \cdot V / (1+c)$, scaling the private cost of speeding risk. When $V$ is large, agents internalize more mortality risk, making effective deterrence across the income distribution more valuable. The interaction with fine structure favors income-based fines because they achieve deterrence more equitably.
 
 ### Speed-fatality exponent
 
