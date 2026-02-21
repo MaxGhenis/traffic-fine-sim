@@ -20,7 +20,7 @@ We clip marginal tax rates to the range $[0, 0.95]$ to handle occasional values 
 
 ### Sampling procedure
 
-Each Monte Carlo draw samples $N = 1{,}000$ agents with replacement from the CPS microdata, using person survey weights as sampling probabilities. This weighted bootstrap preserves the representative structure of the CPS while allowing independent draws across simulations. Each sampled agent carries their empirical wage (employment income / 2,080 hours) and marginal tax rate.
+Each Monte Carlo draw samples $N = 50$ agents with replacement from the CPS microdata, using calibrated household weights as sampling probabilities. This weighted bootstrap preserves the representative structure of the CPS while allowing independent draws across simulations. Each sampled agent carries their empirical wage (employment income / 2,080 hours) and marginal tax rate.
 
 Hourly wages are derived as $w_i = y_i / H$ where $y_i$ is annual employment income and $H = 2{,}080$ hours.
 
@@ -28,11 +28,15 @@ Hourly wages are derived as $w_i = y_i / H$ where $y_i$ is annual employment inc
 
 ### Speeding utility weight ($\alpha$)
 
-The parameter $\alpha$ governs the private benefit agents derive from speeding. We set $\alpha \sim \mathcal{N}(0.5, 0.15)$. Higher values of $\alpha$ generate more speeding in equilibrium and make deterrence more valuable, tilting the comparison toward income-based fines. In our baseline calibration, equilibrium mean speeding intensity is approximately 0.39, higher than typical observed behavior (most speeders exceed limits by 5--15 mph, corresponding to $s \approx 0.08$--$0.23$). This elevated speeding arises because our model does not include detection probability or non-monetary penalties (points, license suspension), which in practice constrain speeding. The continuous fine formulation $F \cdot s$ or $\phi \cdot y \cdot s$ can be interpreted as the expected fine conditional on the full enforcement technology {cite}`becker1968`, and the implied detection probability would then scale down the equilibrium speeding intensity. We discuss the implications of this calibration in Section 6.
+The parameter $\alpha$ governs the private benefit agents derive from speeding. We set $\alpha \sim \mathcal{N}(0.5, 0.15)$. Higher values of $\alpha$ generate more speeding in equilibrium and make deterrence more valuable, tilting the comparison toward income-based fines. In our baseline calibration, equilibrium mean speeding intensity is approximately 0.37, higher than typical observed behavior (most speeders exceed limits by 5--15 mph, corresponding to $s \approx 0.08$--$0.23$). This elevated speeding arises because our model does not include detection probability or non-monetary penalties (points, license suspension), which in practice constrain speeding. The continuous fine formulation $F \cdot s$ or $\phi \cdot y \cdot s$ can be interpreted as the expected fine conditional on the full enforcement technology {cite}`becker1968`, and the implied detection probability would then scale down the equilibrium speeding intensity. We discuss the implications of this calibration in Section 6.
 
 ### Labor disutility ($\beta$)
 
-The parameter $\beta$ controls the curvature of the labor disutility function $\beta(h/H)^2/2$. We set $\beta \sim \mathcal{N}(1.0, 0.3)$, calibrated to generate Frisch elasticities in the range 0.1--0.3. The labor supply elasticity is an *implied* quantity derived from $\beta$ and the equilibrium allocation, not a directly varied parameter. At median US wages (~\$27/hour), typical hours (~1,800/year), and a median effective tax rate of ~28%, $\beta = 1.0$ yields an implied Frisch elasticity $\varepsilon^F \approx 0.25$, consistent with the meta-analytic consensus from {cite}`chetty2012` and survey evidence from {cite}`keane2011`. Because the mapping from $\beta$ to $\varepsilon^F$ is nonlinear, the distribution of implied elasticities across Monte Carlo draws is not exactly Normal, but the central tendency is close to the target of 0.25.
+The parameter $\beta$ scales the labor disutility function $\beta(h/H)^2/2$. We set $\beta \sim \mathcal{N}(1.0, 0.3)$, which governs equilibrium hours and the level of labor disutility.
+
+The quadratic specification implies a Frisch elasticity of labor supply that is identically 1.0, regardless of $\beta$. To see this, note that the Frisch elasticity is $\varepsilon^F = v'(h) / [h \cdot v''(h)]$. For $v(h) = \frac{\beta}{2}(h/H)^2$, we have $v'(h) = \beta h / H^2$ and $v''(h) = \beta / H^2$, so $\varepsilon^F = (\beta h / H^2) / (h \cdot \beta / H^2) = 1$. The parameter $\beta$ affects equilibrium hours but not the curvature ratio that determines the elasticity.
+
+This implied Frisch elasticity of 1.0 is higher than the meta-analytic consensus of approximately 0.25 from {cite}`chetty2012` and {cite}`keane2011`. Targeting $\varepsilon^F = 0.25$ would require a higher-power specification such as $v(h) \propto (h/H)^{1+1/\varepsilon} = (h/H)^5$. We retain the quadratic form for analytical tractability and because the higher elasticity makes our results *more conservative*: since the labor distortion from income-based fines is increasing in the elasticity, the welfare advantage of income-based fines would be even larger at the empirically estimated elasticity of 0.25 than at our model's value of 1.0. The finding that income-based fines dominate in 95% of draws despite an elasticity four times the consensus estimate strengthens the qualitative conclusion.
 
 ### Maximum hours ($H$)
 
@@ -42,7 +46,7 @@ We fix $H = 2{,}080$ hours per year (40 hours/week $\times$ 52 weeks) with no un
 
 ### Value of statistical life ($V$)
 
-We adopt $V \sim \mathcal{N}(11{,}600{,}000, \; 2{,}900{,}000)$ USD, following the US EPA's central estimate for regulatory impact analyses {cite}`epa_vsl2024`. The 25% coefficient of variation reflects the substantial range in meta-analytic estimates. The VSL enters the model as a scaling factor in the death cost term $p(s) \cdot V / (1+c)$; higher values increase the private cost of speeding and reduce equilibrium speeding intensity under both fine systems.
+We adopt $V \sim \mathcal{N}(11{,}600{,}000, \; 2{,}900{,}000)$ USD, following the US EPA's central estimate for regulatory impact analyses {cite}`epa_vsl2024`. The 25% coefficient of variation reflects the range in meta-analytic estimates. The VSL enters the model as a scaling factor in the death cost term $p(s) \cdot V / (1+c)$; higher values increase the private cost of speeding and reduce equilibrium speeding intensity under both fine systems.
 
 ### Baseline death probability ($p_{\text{base}}$)
 
@@ -64,9 +68,9 @@ The income-based fine rate is $\phi = 0.02$ per unit speeding intensity. There i
 
 ## Monte Carlo procedure
 
-For each Monte Carlo draw, the procedure is as follows. Sample $N$ agents with replacement from CPS microdata using calibrated household weights as sampling probabilities, obtaining per-agent wages $w_i$ and marginal tax rates $\text{MTR}_i$. Draw $(\alpha, \beta, V, p_{\text{base}}, n)$ independently from their Normal priors, clipping to valid ranges ($\alpha, \beta > 0.01$; $p_{\text{base}} \in [10^{-8}, 0.1]$; $n \in [0.5, 10]$). Find the welfare-maximizing flat fine $F^*$ and income-based rate $\phi^*$ by grid search. Solve mean-field equilibrium under each optimal fine system. Record utilitarian welfare, mean speeding, Gini coefficient, and equilibrium transfers for each system. Compute the welfare difference $\Delta W = W_{\text{flat}} - W_{\text{IB}}$ and its decomposition.
+For each Monte Carlo draw, the procedure is as follows. Sample $N$ agents with replacement from CPS microdata using calibrated household weights as sampling probabilities, obtaining per-agent wages $w_i$ and marginal tax rates $\text{MTR}_i$. Draw $(\alpha, \beta, V, p_{\text{base}}, n)$ independently from their Normal priors, clipping to valid ranges ($\alpha, \beta > 0.01$; $p_{\text{base}} \in [10^{-8}, 0.1]$; $n \in [0.5, 10]$). Find the welfare-maximizing flat fine $F^*$ and income-based rate $\phi^*$ by grid search. Solve mean-field equilibrium under each optimal fine system. Record utilitarian welfare, mean speeding, Gini coefficient, and equilibrium transfers for each system. Compute the welfare difference $\Delta W = W_{\text{IB}} - W_{\text{flat}}$ and its decomposition.
 
-The baseline specification uses 100 Monte Carlo draws with 50 agents per draw. The moderate sample sizes reflect the computational cost of solving mean-field equilibrium with per-agent L-BFGS-B optimization inside a damped fixed-point iteration loop; each draw requires solving two equilibria (flat and income-based), each involving repeated optimization of all agents until convergence. The standard error of the estimated probability $\Pr(\Delta W < 0)$ at $\hat{p} = 0.94$ is approximately $\sqrt{0.94 \times 0.06 / 100} \approx 0.024$, adequate to establish the direction of the welfare comparison.
+The baseline specification uses 100 Monte Carlo draws with 50 agents per draw. The moderate sample sizes reflect the computational cost of solving mean-field equilibrium with per-agent L-BFGS-B optimization inside a damped fixed-point iteration loop; each draw requires solving two equilibria (flat and income-based), each involving repeated optimization of all agents until convergence. The standard error of the estimated probability $\Pr(\Delta W > 0)$ at $\hat{p} = 0.95$ is approximately $\sqrt{0.95 \times 0.05 / 100} \approx 0.022$, adequate to establish the direction of the welfare comparison.
 
 Tax rates are **not drawn from priors**---they are empirical, fixed per agent, drawn from the CPS microdata. This is a key methodological improvement over using a single scalar tax rate parameter.
 
@@ -111,9 +115,9 @@ Tax rates are **not drawn from priors**---they are empirical, fixed per agent, d
   - 4.0
   - 0.5
   - {cite}`nilsson2004`, {cite}`elvik2019`
-* - Labor supply elasticity (implied)
-  - $\varepsilon$
-  - 0.25
+* - Frisch elasticity (implied by quadratic $v$)
+  - $\varepsilon^F$
+  - 1.0
   - ---
-  - {cite}`chetty2012` (target, implied by $\beta$)
+  - Implied by $v(h) = \frac{\beta}{2}(h/H)^2$; see text
 ```

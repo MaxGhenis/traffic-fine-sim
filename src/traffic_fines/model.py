@@ -54,13 +54,13 @@ def utility(
     of consumption.
 
     Args:
-        consumption: After-tax, after-fine consumption (EUR).
+        consumption: After-tax, after-fine consumption (USD).
         speeding: Speeding intensity [0, 1].
         hours: Annual work hours.
         alpha: Weight on speeding utility.
         beta: Labor disutility coefficient.
         max_hours: Maximum annual hours (normalizer).
-        vsl: Value of statistical life (EUR).
+        vsl: Value of statistical life (USD).
         p_base: Baseline death probability.
         exponent: Power model exponent.
 

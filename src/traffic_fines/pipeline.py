@@ -154,6 +154,8 @@ def run_analysis(
         optimal_flat_amounts[i] = opt_flat_amt
         optimal_ib_rates[i] = opt_ib_rate
 
+    # Sign convention: flat - IB (negative means IB dominates).
+    # Paper reports Delta W = IB - flat = -1 * this quantity.
     welfare_diff = flat_welfare - ib_welfare
 
     return AnalysisResults(
