@@ -2185,12 +2185,12 @@ wheels = [
 
 [[package]]
 name = "traffic-fines"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
-    { name = "jupyter-book" },
     { name = "numpy" },
     { name = "pandas" },
+    { name = "pyyaml" },
     { name = "scipy" },
 ]
 
@@ -2210,18 +2210,18 @@ paper = [
 [package.metadata]
 requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=24.0" },
-    { name = "jupyter-book", marker = "extra == 'paper'", specifier = ">=2.0" },
-    { name = "jupyter-book", extras = ["paper"], specifier = ">=2.1.0" },
+    { name = "jupyter-book", extras = ["paper"], marker = "extra == 'paper'", specifier = ">=2.1.0" },
     { name = "matplotlib", marker = "extra == 'paper'", specifier = ">=3.8" },
     { name = "numpy", specifier = ">=1.26" },
     { name = "pandas", specifier = ">=2.1" },
     { name = "plotly", marker = "extra == 'paper'", specifier = ">=5.18" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1" },
+    { name = "pyyaml", specifier = ">=6.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1" },
     { name = "scipy", specifier = ">=1.11" },
 ]
-provides-extras = ["dev", "paper", "app"]
+provides-extras = ["dev", "paper"]
 
 [[package]]
 name = "traitlets"

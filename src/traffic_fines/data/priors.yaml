@@ -1,0 +1,51 @@
+# Model parameter priors for Monte Carlo uncertainty propagation
+# Each prior is Normal(mean, sd) unless otherwise noted
+
+agent:
+  alpha:
+    mean: 0.5
+    sd: 0.15
+    source: "Calibrated to match Finnish speeding rates; Kaila 2024"
+    description: "Speeding utility weight in log utility"
+  beta:
+    mean: 1.0
+    sd: 0.3
+    source: "Standard labor disutility calibration; Keane 2011"
+    description: "Labor disutility coefficient"
+  max_hours:
+    mean: 2080
+    sd: 0
+    source: "Standard full-time work year (40h/week * 52 weeks)"
+    description: "Maximum annual work hours"
+
+safety:
+  vsl:
+    mean: 3600000
+    sd: 900000
+    source: "EU Commission DG MOVE 2014; 3.6M EUR central estimate"
+    description: "Value of statistical life (EUR)"
+    unit: EUR
+  death_prob_base:
+    mean: 0.001
+    sd: 0.0005
+    source: "Conditional on active driving (~15k km/yr): ~7 deaths/billion veh-km × 15k km = 1e-4 base, scaled up for speeding exposure; calibrated to produce interior solutions matching Finnish speeding rates"
+    description: "Baseline annual traffic death probability for active drivers"
+  speed_fatality_exponent:
+    mean: 4.0
+    sd: 0.5
+    source: "Nilsson 2004 power model; n≈4 for fatalities"
+    description: "Exponent in p(s) = p_base * (1+s)^n"
+
+fiscal:
+  tax_rate:
+    mean: 0.30
+    sd: 0.05
+    source: "Finnish average effective tax rate; Statistics Finland 2023"
+    description: "Proportional income tax rate"
+
+labor:
+  elasticity:
+    mean: 0.25
+    sd: 0.10
+    source: "Chetty 2012; Hicksian elasticity 0.25 [0.15, 0.35]"
+    description: "Compensated labor supply elasticity"

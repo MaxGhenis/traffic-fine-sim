@@ -1,0 +1,11 @@
+# Finnish income distribution parameters
+distribution:
+  type: lognormal
+  mean_income: 45000
+  income_std: 25000
+  unit: EUR
+  source: "Statistics Finland 2023; median ~35k, mean ~45k EUR"
+
+simulation:
+  n_agents: 1000
+  source: "Simulation resolution; convergence tested at 500, 1000, 2000"

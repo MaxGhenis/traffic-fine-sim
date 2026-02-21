@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "traffic-fines"
-version = "0.1.0"
+version = "0.2.0"
 description = "Simulation framework for analyzing welfare effects of income-based vs flat traffic fines"
 readme = "README.md"
 license = "MIT"
@@ -27,7 +27,7 @@ dependencies = [
     "numpy>=1.26",
     "scipy>=1.11",
     "pandas>=2.1",
-    "jupyter-book[paper]>=2.1.0",
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
@@ -38,15 +38,9 @@ dev = [
     "black>=24.0",
 ]
 paper = [
-    "jupyter-book>=2.0",
+    "jupyter-book[paper]>=2.1.0",
     "matplotlib>=3.8",
     "plotly>=5.18",
-]
-app = [
-    # React app dependencies handled separately via bun
-]
-policyengine = [
-    "policyengine-us>=1.0",
 ]
 
 [project.urls]
@@ -54,11 +48,11 @@ Homepage = "https://github.com/MaxGhenis/traffic-fine-sim"
 Repository = "https://github.com/MaxGhenis/traffic-fine-sim"
 
 [tool.hatch.build.targets.wheel]
-packages = ["traffic_fines"]
+packages = ["src/traffic_fines"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = ["src"]
 addopts = "-v --cov=traffic_fines --cov-report=term-missing"
 
 [tool.ruff]

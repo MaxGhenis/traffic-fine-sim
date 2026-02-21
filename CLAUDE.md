@@ -1,74 +1,53 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code when working with this repository.
+## Project overview
 
-## Project Overview
+Traffic fine simulation: analyzes welfare effects of income-based vs flat traffic fines. Heterogeneous agents optimize labor supply and speeding under different fine regimes. Calibrated to Finland's day-fine system.
 
-Traffic Fines Simulation is a Python package for analyzing the welfare effects of income-based versus flat traffic fine systems. The package implements an agent-based model where heterogeneous agents optimize their labor supply and speeding decisions under different fine regimes.
-
-## Development Commands
+## Development commands
 
 ```bash
-# Install with uv (recommended)
-uv sync
-
-# Run tests
-uv run pytest tests/ -v
-
-# Run tests with coverage
-uv run pytest tests/ --cov=traffic_fines --cov-report=term-missing
-
-# Build paper (JupyterBook 2.0)
-cd paper && uv run jupyter-book build .
+uv sync                                      # Install
+uv run pytest tests/ -v --no-cov             # Fast tests (114 tests, ~2min)
+uv run pytest tests/ -v                      # Tests with coverage
+uv run python -c "from traffic_fines.pipeline import run_analysis; r = run_analysis(n_samples=200, n_agents=50); r.save('src/traffic_fines/data/results.json')"  # Generate results
 ```
 
 ## Architecture
 
 ```
-traffic_fines/           # Core Python package
-├── core/
-│   ├── agent.py         # Agent class with utility optimization
-│   ├── fines.py         # FlatFine, IncomeBasedFine structures
-│   ├── society.py       # Society simulation with equilibrium dynamics
-│   └── optimizer.py     # WelfareOptimizer for finding optimal parameters
-└── utils/
-    └── parameters.py    # Default parameters (Finnish calibration)
+src/traffic_fines/
+├── evidence.py        # 35 Source dataclasses (whatnut pattern)
+├── config.py          # Typed YAML loaders + validation
+├── model.py           # Agent optimization + mean-field equilibrium
+├── montecarlo.py      # Forward MC over parameter uncertainty
+├── welfare.py         # Welfare functions + optimizer
+├── pipeline.py        # Orchestration → results.json
+└── data/
+    ├── priors.yaml           # All params with mean, sd, source
+    ├── income_distribution.yaml
+    ├── fine_systems.yaml
+    ├── externalities.yaml
+    └── results.json          # Generated output (single source of truth)
 
-paper/                   # JupyterBook 2.0 academic paper
-tests/                   # pytest test suite (54 tests, 98% coverage)
+tests/                 # 114 tests, TDD
+paper/                 # JupyterBook 2.0 / MyST (7 chapters)
 ```
 
-## Key Components
+## Key model
 
-**Agent (`traffic_fines/core/agent.py`):**
-- Optimizes labor supply (0-2080 hours/year) and speeding (0-1)
-- Utility: log(consumption) + α·log(1+speeding) - β·hours²/2 - p(s)·VSL
-- Uses scipy L-BFGS-B optimizer
+**Utility:** `U = log(1+c) + α·log(1+s) - β·(h/H)²/2 - p(s)·VSL/(1+c)`
 
-**Fine Structures (`traffic_fines/core/fines.py`):**
-- `FlatFine`: Fixed amount, marginal rate = 0
-- `IncomeBasedFine`: Fine = rate × income × speeding, creates implicit tax
+**Death probability (Nilsson 2004):** `p(s) = p_base·(1+s)^n, n≈4`
 
-**Society (`traffic_fines/core/society.py`):**
-- Iterates: agents optimize → update death probability → redistribute as UBI → repeat
-- Tracks convergence, calculates Gini coefficient
+**Equilibrium:** Mean-field fixed point with damped iteration (relative convergence).
 
-**WelfareOptimizer (`traffic_fines/core/optimizer.py`):**
-- Finds welfare-maximizing fine parameters
-- Compares flat vs income-based systems
+**Monte Carlo:** Forward sampling from priors (Normal), 10k samples for production.
+
+## Evidence tracing
+
+Every parameter in YAML files has a `source` field linking to a `Source` dataclass in `evidence.py`. Every source has DOI or database reference, URL, study type. `validate_sources()` checks integrity.
 
 ## Testing
 
-All code follows TDD (Test-Driven Development). Tests are in `tests/` using pytest.
-
-```bash
-uv run pytest tests/test_agent.py -v      # Agent tests
-uv run pytest tests/test_fines.py -v      # Fine structure tests
-uv run pytest tests/test_society.py -v    # Society tests
-uv run pytest tests/test_optimizer.py -v  # Optimizer tests
-```
-
-## Paper
-
-The academic paper is in `paper/` using JupyterBook 2.0 with MyST markdown.
-Configuration is in `paper/myst.yml`.
+TDD throughout. Tests validate: evidence integrity, config loading, utility properties, equilibrium convergence, MC reproducibility, pipeline end-to-end, JSON serialization.

@@ -1,0 +1,15 @@
+# Fine system configurations
+flat:
+  amount: 200
+  unit: EUR
+  description: "Fixed fine regardless of income"
+  source: "Typical Finnish petty fine (rikesakko) for minor speeding"
+
+income_based:
+  rate: 0.002
+  min_fine: 6
+  unit: EUR
+  description: "Day-fine system: fine = rate * net_income * severity_days"
+  source: "Finnish day-fine system; Kantorowicz-Reznichenko & Faure 2021"
+  severity_days: 12
+  source_severity: "Typical day count for 20 km/h over limit"

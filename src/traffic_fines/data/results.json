@@ -1,0 +1,49 @@
+{
+  "seed": 42,
+  "n_samples": 200,
+  "flat": {
+    "welfare_mean": 504.90356346443923,
+    "welfare_ci": [
+      487.1474512758327,
+      529.1810257909946
+    ],
+    "speeding_mean": 0.19257293221760652,
+    "speeding_ci": [
+      0.0,
+      1.0
+    ],
+    "gini_mean": 0.221015569851288
+  },
+  "income_based": {
+    "welfare_mean": 504.9030467722878,
+    "welfare_ci": [
+      487.14726955799216,
+      529.1699249730459
+    ],
+    "speeding_mean": 0.19418446452952437,
+    "speeding_ci": [
+      0.0,
+      1.0
+    ],
+    "gini_mean": 0.22093497435457962
+  },
+  "comparison": {
+    "welfare_difference_mean": 0.0005166921513745137,
+    "welfare_difference_ci": [
+      -0.02439424534956913,
+      0.012228049107922346
+    ],
+    "p_flat_better": 0.655
+  },
+  "parameters": {
+    "alpha_mean": 0.5,
+    "beta_mean": 1.0,
+    "vsl_mean": 3600000,
+    "p_base_mean": 0.001,
+    "exponent_mean": 4.0,
+    "tax_rate_mean": 0.3,
+    "n_agents": 50,
+    "flat_amount": 200.0,
+    "ib_rate": 0.002
+  }
+}

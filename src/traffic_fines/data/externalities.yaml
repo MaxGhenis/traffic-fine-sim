@@ -1,0 +1,15 @@
+# Speed externality parameters
+congestion:
+  cost_per_incident: 50000
+  unit: EUR
+  source: "EU Commission DG MOVE 2014; average accident cost"
+
+environment:
+  co2_per_speed_unit: 0.05
+  unit: "kg CO2 per km per unit speed increase"
+  source: "Estimated from fuel consumption curves"
+
+noise:
+  cost_per_db: 1000
+  unit: EUR/year
+  source: "EU noise directive valuations"
