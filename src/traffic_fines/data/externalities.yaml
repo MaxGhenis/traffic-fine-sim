@@ -1,8 +1,12 @@
 # Speed externality parameters
+# NOTE: These externality values are not used in the core welfare comparison
+# model, which focuses on private mortality risk. They are retained for
+# potential future extensions incorporating external costs of speeding.
+
 congestion:
-  cost_per_incident: 50000
-  unit: EUR
-  source: "EU Commission DG MOVE 2014; average accident cost"
+  cost_per_incident: 54000
+  unit: USD
+  source: "NHTSA crash cost estimates (2024); average economic cost per crash"
 
 environment:
   co2_per_speed_unit: 0.05
@@ -10,6 +14,6 @@ environment:
   source: "Estimated from fuel consumption curves"
 
 noise:
-  cost_per_db: 1000
-  unit: EUR/year
-  source: "EU noise directive valuations"
+  cost_per_db: 1100
+  unit: USD/year
+  source: "US DOT noise valuation guidance (approximate EUR-USD conversion)"

@@ -14,7 +14,7 @@ from traffic_fines.pipeline import AnalysisResults, run_analysis
 
 
 FAST_FLAT_GRID = [100, 500]
-FAST_IB_GRID = [0.002, 0.01]
+FAST_IB_GRID = [0.02, 0.1]
 
 
 @pytest.fixture(autouse=True)

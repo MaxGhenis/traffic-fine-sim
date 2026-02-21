@@ -36,7 +36,7 @@ def run_montecarlo(
     seed: int = 42,
     n_agents: int = 10,
     flat_amount: float = 130.0,
-    ib_rate: float = 0.002,
+    ib_rate: float = 0.02,
 ) -> MonteCarloResult:
     """Forward Monte Carlo over parameter uncertainty.
 

@@ -125,26 +125,26 @@ class TestFineStructures:
         assert fine.calculate(income=50_000, speeding=0.0) == 0.0
 
     def test_income_fine_scales_with_income(self):
-        fine = IncomeBasedFine(rate=0.002)
+        fine = IncomeBasedFine(rate=0.02)
         f_low = fine.calculate(income=30_000, speeding=0.5)
         f_high = fine.calculate(income=100_000, speeding=0.5)
         assert f_high > f_low
 
     def test_income_fine_proportional_to_income(self):
-        fine = IncomeBasedFine(rate=0.002)
+        fine = IncomeBasedFine(rate=0.02)
         f1 = fine.calculate(income=50_000, speeding=0.5)
         f2 = fine.calculate(income=100_000, speeding=0.5)
         assert f2 / f1 == pytest.approx(2.0)
 
     def test_income_fine_proportional_to_speeding(self):
-        fine = IncomeBasedFine(rate=0.002)
+        fine = IncomeBasedFine(rate=0.02)
         f1 = fine.calculate(income=50_000, speeding=0.25)
         f2 = fine.calculate(income=50_000, speeding=0.5)
         assert f2 / f1 == pytest.approx(2.0)
 
     def test_income_fine_implicit_marginal_tax(self):
         """Income-based fine creates an implicit marginal tax on income."""
-        fine = IncomeBasedFine(rate=0.002)
+        fine = IncomeBasedFine(rate=0.02)
         # Marginal fine w.r.t. income = rate * speeding
         speeding = 0.5
         marginal_tax = fine.rate * speeding
@@ -152,7 +152,7 @@ class TestFineStructures:
 
     def test_fine_system_interface(self):
         """Both fine types implement the same interface."""
-        for fine_obj in [FlatFine(amount=200), IncomeBasedFine(rate=0.002)]:
+        for fine_obj in [FlatFine(amount=200), IncomeBasedFine(rate=0.02)]:
             result = fine_obj.calculate(income=50_000, speeding=0.5)
             assert isinstance(result, float)
             assert result >= 0
@@ -285,7 +285,7 @@ class TestEquilibrium:
         )
         result_income = solve_equilibrium(
             wages=small_economy,
-            fine_system=IncomeBasedFine(rate=0.002),
+            fine_system=IncomeBasedFine(rate=0.02),
             alpha=0.5,
             beta=1.0,
             max_hours=2080,

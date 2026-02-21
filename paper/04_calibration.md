@@ -65,7 +65,7 @@ The flat fine baseline is $F = \$130$, approximating the US national average for
 
 ### Income-based fine
 
-The income-based fine rate is $\phi = 0.002$ per unit speeding intensity. There is no established US income-based fine system to calibrate against directly; we adopt a rate consistent with European day-fine systems {cite}`kantorowicz_faure2021` and the San Francisco pilot {cite}`sf_income_fines2025`. At median US income (~\$56,000), a speeding intensity of $s = 0.1$ yields a fine of $0.002 \times 56{,}000 \times 0.1 = \$11.20$---modest enough to be politically feasible while creating a measurable implicit tax on labor income.
+The income-based fine rate is $\phi = 0.02$ per unit speeding intensity. There is no established US income-based fine system to calibrate against directly; we adopt a rate consistent with European day-fine systems {cite}`kantorowicz_faure2021` and the San Francisco pilot {cite}`sf_income_fines2025`. At median US income (~\$56,000), a speeding intensity of $s = 0.1$ yields a fine of $0.02 \times 56{,}000 \times 0.1 = \$112$---comparable to the flat fine at median income, providing a revenue-neutral comparison while creating a measurable implicit tax on labor income.
 
 ## Monte Carlo procedure
 
@@ -74,7 +74,7 @@ For each of 10,000 draws:
 1. Sample $N = 1{,}000$ agents with replacement from CPS microdata (weighted bootstrap), obtaining per-agent wages $w_i$ and marginal tax rates $\text{MTR}_i$.
 2. Draw $(\alpha, \beta, V, p_{\text{base}}, n)$ independently from their Normal priors, clipping to valid ranges ($\alpha, \beta > 0.01$; $p_{\text{base}} \in [10^{-8}, 0.1]$; $n \in [0.5, 10]$).
 3. Solve mean-field equilibrium under the flat fine ($F = 130$).
-4. Solve mean-field equilibrium under the income-based fine ($\phi = 0.002$).
+4. Solve mean-field equilibrium under the income-based fine ($\phi = 0.02$).
 5. Record utilitarian welfare, mean speeding, Gini coefficient, and equilibrium transfers for each system.
 6. Compute the welfare difference $\Delta W = W_{\text{flat}} - W_{\text{IB}}$ and its decomposition.
 

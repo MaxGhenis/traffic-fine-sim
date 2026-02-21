@@ -6,7 +6,7 @@ flat:
   source: "US national average traffic fine; NCSC 2023"
 
 income_based:
-  rate: 0.002
+  rate: 0.02
   min_fine: 10
   unit: USD
   description: "Income-proportional fine: fine = rate * income * speeding_intensity"

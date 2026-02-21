@@ -18,7 +18,7 @@ $$U_i = \underbrace{\log(1 + c_i)}_{\text{consumption}} + \underbrace{\alpha \lo
 
 Several features merit discussion. Log consumption utility ensures declining marginal utility and positive consumption. The speeding term $\alpha \log(1+s)$ captures time savings and private benefits from higher speeds, with diminishing returns. The quadratic labor cost in normalized hours $h/H$ generates interior solutions and well-behaved comparative statics. The death cost term $p(s) \cdot V / (1+c)$ converts the monetary VSL into utility units by multiplying by the marginal utility of consumption $u'(c) = 1/(1+c)$, ensuring that risk valuation is consistent with the consumption utility function.
 
-**Assumption 2 (Power model).** *The annual death probability follows the Nilsson (2004) power model:*
+**Assumption 2 (Power model).** *The annual death probability follows the {cite}`nilsson2004` power model:*
 
 $$p(s) = p_{\text{base}} \cdot (1 + s)^n, \quad n \approx 4$$ (eq:death-prob)
 
@@ -28,7 +28,7 @@ This specification implies that fatality risk is highly convex in speeding inten
 
 ## Budget constraint and fine structures
 
-Agent $i$ earns gross income $y_i = w_i h_i$, pays proportional income tax at rate $\tau$, pays a fine that depends on the fine system, and receives a universal transfer $T$. We consider two fine structures.
+Agent $i$ earns gross income $y_i = w_i h_i$, pays income tax, pays a fine that depends on the fine system, and receives a uniform transfer $T$. In the budget constraints below, $\tau$ denotes the agent-specific tax rate $\text{MTR}_i$. We use each agent's marginal tax rate from the CPS/PolicyEngine data as a linearization of the progressive tax schedule around the observed income level. This is a standard approximation in the public finance simulation literature {cite}`saez2001`: the marginal rate governs the agent's labor supply response at the margin, which is the relevant object for the welfare comparison between fine systems. Because both fine systems use the same linearized tax treatment, any level bias from this approximation is symmetric and cancels in the welfare *difference* $\Delta W = W_{\text{flat}} - W_{\text{IB}}$, which is our primary object of interest. We discuss the limitations of this approximation in Section 6. We consider two fine structures.
 
 **Flat fine.** Under a flat fine $F$, the penalty is $F \cdot s_i$---proportional to speeding intensity but independent of income:
 
@@ -70,11 +70,15 @@ $$\frac{\partial s_i}{\partial \phi} < 0, \quad \frac{\partial h_i}{\partial \ph
 
 *The first effect is the intended deterrence; the second is the unintended labor distortion.*
 
-**Proposition 3.** *The labor supply reduction from income-based fines is increasing in productivity $w_i$: higher-wage agents lose more from the implicit tax because their opportunity cost of reduced labor is higher.*
+*Proof sketch.* From {eq}`eq:foc-s-ib`, the marginal cost of speeding includes $\phi w_i h_i / (1+c_i)$, which is increasing in $\phi$, so the equilibrium $s_i$ falls. From {eq}`eq:foc-h-ib`, the marginal return to labor is $w_i(1 - \tau - \phi s_i)/(1+c_i)$, which is decreasing in $\phi$ (holding $s_i$ fixed). While the reduction in $s_i$ partially offsets this by raising the net-of-fine return, the direct effect dominates when $\phi$ is small relative to $1-\tau$, which holds at empirically relevant fine rates. Numerical verification confirms this for all parameter draws in our Monte Carlo analysis.
+
+**Proposition 3.** *The labor supply reduction from income-based fines is increasing in productivity $w_i$, provided that hours $h_i$ are increasing in $w_i$.*
+
+*Proof sketch.* The labor distortion arises from the additional effective tax $\phi s_i$ on labor income $w_i h_i$. From {eq}`eq:foc-h-ib`, the wedge between the marginal return to labor and the marginal disutility is proportional to $\phi s_i w_i / (1+c_i)$. When $w_i$ is higher, the absolute reduction in labor income from any given percentage reduction in hours is larger, and the deadweight loss---which is proportional to $w_i^2$ in a linear approximation---is therefore increasing in $w_i$. This holds when hours are interior and increasing in wages, which is the case in our simulations for all agents.
 
 ## Mean-field equilibrium
 
-Fine and tax revenue funds a universal transfer (UBI). The government budget constraint is:
+Fine and tax revenue funds a uniform transfer. The government budget constraint is:
 
 $$T = \frac{1}{N} \left[ \sum_{i=1}^{N} \tau w_i h_i + \sum_{i=1}^{N} f_i(w_i h_i, s_i) \right]$$ (eq:budget-govt)
 
