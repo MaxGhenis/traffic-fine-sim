@@ -31,8 +31,8 @@ class TestSourceDataclass:
 
 class TestSourceCount:
     def test_source_count(self):
-        """At least 30 sources required."""
-        assert len(SOURCES) >= 30
+        """At least 36 sources required."""
+        assert len(SOURCES) >= 36
 
 
 class TestAllSourcesHaveValidUrls:
@@ -79,7 +79,7 @@ class TestValidateSources:
 class TestKeySourcesPresent:
     @pytest.mark.parametrize(
         "source_id",
-        ["mirrlees1971", "nilsson2004", "kaila2024", "becker1968"],
+        ["mirrlees1971", "nilsson2004", "kaila2024", "becker1968", "epa_vsl2024", "policyengine_us2024"],
     )
     def test_key_sources_present(self, source_id):
         s = get_source(source_id)

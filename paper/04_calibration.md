@@ -4,21 +4,40 @@ title: Calibration
 
 # Calibration
 
-We calibrate the model to Finland, which operates the world's longest-running income-based fine system and provides the best available data for this analysis. Rather than fixing parameters at point estimates, we specify informative priors for each parameter and propagate uncertainty through forward Monte Carlo simulation with 10,000 draws. This section traces each parameter to its empirical source.
+We calibrate the model to the United States, using real microdata from the Enhanced Current Population Survey (CPS) via PolicyEngine {cite}`policyengine_us2024`. Rather than fixing parameters at point estimates, we specify informative priors for behavioral parameters and propagate uncertainty through forward Monte Carlo simulation with 10,000 draws. The key innovation is using empirically estimated per-agent marginal tax rates that capture the full complexity of the US tax-benefit system.
+
+## Income distribution and marginal tax rates
+
+### CPS microdata
+
+Agent wages and tax rates are drawn from the Enhanced CPS microdata, processed through PolicyEngine's US microsimulation model {cite}`policyengine_us2024,census_cps2024`. We restrict the sample to working-age adults (18--64) with positive employment income, yielding approximately 70,000 observations representing the US working population.
+
+For each observation, PolicyEngine computes the marginal tax rate accounting for:
+- Federal income tax (including bracket structure and standard deduction)
+- State income taxes (varying across all 50 states plus DC)
+- FICA payroll taxes (Social Security 6.2% + Medicare 1.45%, with Social Security cap)
+- Earned Income Tax Credit phase-in and phase-out
+- Benefit phase-outs (SNAP, Medicaid, housing assistance, etc.)
+
+The resulting MTR distribution is dramatically heterogeneous. Workers in the EITC phase-out region face effective marginal rates near 40% {cite}`maag_etal2012`, while some middle-income workers above the EITC range but below higher tax brackets face rates around 22--25%. High earners face combined federal-state rates of 40--50%. This heterogeneity is a key empirical contribution: it means income-based fines interact very differently with the tax-benefit system at different income levels, amplifying the double distortion for workers already facing high marginal rates.
+
+We clip marginal tax rates to the range $[0, 0.95]$ to handle occasional values exceeding 100% that arise from benefit cliffs (discrete jumps in program eligibility).
+
+### Sampling procedure
+
+Each Monte Carlo draw samples $N = 1{,}000$ agents with replacement from the CPS microdata, using person survey weights as sampling probabilities. This weighted bootstrap preserves the representative structure of the CPS while allowing independent draws across simulations. Each sampled agent carries their empirical wage (employment income / 2,080 hours) and marginal tax rate.
+
+Hourly wages are derived as $w_i = y_i / H$ where $y_i$ is annual employment income and $H = 2{,}080$ hours.
 
 ## Preference parameters
 
 ### Speeding utility weight ($\alpha$)
 
-The parameter $\alpha$ governs the private benefit agents derive from speeding. We set $\alpha \sim \mathcal{N}(0.5, 0.15)$, calibrated to match observed Finnish speeding rates under the day-fine system. Higher values of $\alpha$ generate more speeding in equilibrium and make deterrence more valuable, tilting the comparison toward income-based fines. There is no direct empirical estimate of this parameter; instead, we choose the prior mean so that equilibrium speeding intensity is in the range 0.05--0.15, consistent with Finnish enforcement data indicating that most detected violations are 5--15 km/h above posted limits.
+The parameter $\alpha$ governs the private benefit agents derive from speeding. We set $\alpha \sim \mathcal{N}(0.5, 0.15)$, calibrated to match observed US speeding rates. Higher values of $\alpha$ generate more speeding in equilibrium and make deterrence more valuable, tilting the comparison toward income-based fines. We choose the prior mean so that equilibrium speeding intensity is in the range 0.05--0.15, consistent with NHTSA data indicating that speeding is a factor in approximately 29% of traffic fatalities {cite}`nhtsa_fars2024`.
 
 ### Labor disutility ($\beta$)
 
-The parameter $\beta$ controls the curvature of the labor disutility function $\beta(h/H)^2/2$. We set $\beta \sim \mathcal{N}(1.0, 0.3)$, calibrated to generate Frisch elasticities in the range 0.1--0.3. With our utility specification, the Frisch elasticity at an interior optimum is approximately:
-
-$$\varepsilon^F \approx \frac{w(1-\tau)}{\beta \cdot (h/H) \cdot (1+c)}$$
-
-At median Finnish wages (~\euro22/hour), typical hours (~1,500/year), and a 30% tax rate, $\beta = 1.0$ yields $\varepsilon^F \approx 0.25$, consistent with the meta-analytic consensus from {cite}`chetty2012` and survey evidence from {cite}`keane2011`. The standard deviation of 0.3 spans the range from 0.1 (low elasticity, as typical for prime-age men) to 0.4 (higher elasticity, as found for some subgroups).
+The parameter $\beta$ controls the curvature of the labor disutility function $\beta(h/H)^2/2$. We set $\beta \sim \mathcal{N}(1.0, 0.3)$, calibrated to generate Frisch elasticities in the range 0.1--0.3. At median US wages (~\$27/hour), typical hours (~1,800/year), and a median effective tax rate of ~28%, $\beta = 1.0$ yields $\varepsilon^F \approx 0.25$, consistent with the meta-analytic consensus from {cite}`chetty2012` and survey evidence from {cite}`keane2011`.
 
 ### Maximum hours ($H$)
 
@@ -28,54 +47,40 @@ We fix $H = 2{,}080$ hours per year (40 hours/week $\times$ 52 weeks) with no un
 
 ### Value of statistical life ($V$)
 
-We adopt $V \sim \mathcal{N}(3{,}600{,}000, \; 900{,}000)$ EUR, following the European Commission's recommended VSL for transport safety analysis {cite}`eu_vsl2014`. The 25% coefficient of variation reflects the substantial range in meta-analytic estimates, which vary with methodology, population, and income level. The VSL enters the model as a scaling factor in the death cost term $p(s) \cdot V / (1+c)$; higher values increase the private cost of speeding and reduce equilibrium speeding intensity under both fine systems.
+We adopt $V \sim \mathcal{N}(11{,}600{,}000, \; 2{,}900{,}000)$ USD, following the US EPA's central estimate for regulatory impact analyses {cite}`epa_vsl2024`. The 25% coefficient of variation reflects the substantial range in meta-analytic estimates. The VSL enters the model as a scaling factor in the death cost term $p(s) \cdot V / (1+c)$; higher values increase the private cost of speeding and reduce equilibrium speeding intensity under both fine systems.
 
 ### Baseline death probability ($p_{\text{base}}$)
 
-The baseline annual traffic fatality probability is $p_{\text{base}} \sim \mathcal{N}(0.001, 0.0005)$. This is calibrated from Finnish road safety statistics: approximately 220 annual traffic fatalities among 3.5 million licensed drivers, yielding a raw rate of $6.3 \times 10^{-5}$. We scale this up to $10^{-3}$ to reflect the *conditional* risk for active drivers with significant speeding exposure, calibrated to produce interior solutions where agents choose positive but moderate speeding. The standard deviation spans an order of magnitude, from the raw statistical rate to more aggressive risk assumptions.
+The baseline annual traffic fatality probability is $p_{\text{base}} \sim \mathcal{N}(0.00012, 0.00006)$. This is derived from NHTSA FARS data {cite}`nhtsa_fars2024`: 1.37 deaths per 100 million vehicle miles traveled, combined with average annual driving of approximately 13,400 miles per licensed driver, yields an annual fatality probability of approximately $1.2 \times 10^{-4}$.
 
 ### Speed-fatality exponent ($n$)
 
 The power model exponent is $n \sim \mathcal{N}(4.0, 0.5)$, following {cite}`nilsson2004`, who estimated $n \approx 4$ for fatalities across international data. {cite}`elvik2019` found somewhat lower values ($n \approx 3.5$) in updated estimates. Our prior encompasses both, with a range from approximately 3 to 5. This parameter is critical: higher exponents make speeding more dangerous and increase the value of deterrence, favoring income-based fines.
 
-## Fiscal parameters
-
-### Tax rate ($\tau$)
-
-We set $\tau \sim \mathcal{N}(0.30, 0.05)$, representing the average effective tax rate in Finland. Finland's tax system is progressive, with combined municipal and state income tax rates ranging from 0% to approximately 55%. The mean of 0.30 represents the effective rate for middle-income earners who constitute the bulk of driving violations. The tax rate is a key parameter for the double distortion: higher baseline tax rates amplify the deadweight loss from the additional implicit tax created by income-based fines {cite}`harberger1964`.
-
-## Income distribution
-
-Agent wages are drawn from a lognormal distribution calibrated to Finnish income data {cite}`statistics_finland2023`:
-
-$$\log(y) \sim \mathcal{N}(\mu_{\log}, \sigma_{\log})$$
-
-with mean annual income \euro45,000 and standard deviation \euro25,000. These moments imply $\mu_{\log} \approx 10.49$ and $\sigma_{\log} \approx 0.53$. The lognormal specification generates right-skewed income distributions with a median below the mean, consistent with observed Finnish income data (median ~\euro35,000, mean ~\euro45,000). We simulate $N = 1{,}000$ agents per equilibrium computation; convergence tests at $N \in \{500, 1000, 2000\}$ confirm that results are stable.
-
-Hourly wages are derived by dividing annual incomes by maximum hours: $w_i = y_i / H$.
-
 ## Fine system parameters
 
 ### Flat fine
 
-The flat fine baseline is $F = \text{\euro}200$, matching the standard Finnish petty fine (*rikesakko*) for speeding violations under 20 km/h above the limit.
+The flat fine baseline is $F = \$130$, approximating the US national average for speeding tickets based on data from the National Center for State Courts.
 
 ### Income-based fine
 
-The income-based fine rate is $\phi = 0.002$ per unit speeding intensity, calibrated to approximate the Finnish day-fine formula. In Finland, the day-fine amount is approximately $(\text{monthly net income} - 255) / 60 \approx 0.017 \times \text{monthly net income}$ per day-fine unit {cite}`kantorowicz_faure2021`. With a typical severity of 12 day-fine units, the total fine is roughly $0.017 \times 12 = 0.2$ times monthly net income, or about 0.017 times annual income per unit of speeding. Our rate of 0.002 per unit speeding intensity reflects the continuous approximation and the fact that most violations involve modest speeding ($s \approx 0.1$).
+The income-based fine rate is $\phi = 0.002$ per unit speeding intensity. There is no established US income-based fine system to calibrate against directly; we adopt a rate consistent with European day-fine systems {cite}`kantorowicz_faure2021` and the San Francisco pilot {cite}`sf_income_fines2025`. At median US income (~\$56,000), a speeding intensity of $s = 0.1$ yields a fine of $0.002 \times 56{,}000 \times 0.1 = \$11.20$---modest enough to be politically feasible while creating a measurable implicit tax on labor income.
 
 ## Monte Carlo procedure
 
 For each of 10,000 draws:
 
-1. Draw $(\alpha, \beta, V, p_{\text{base}}, n, \tau)$ independently from their Normal priors, clipping to valid ranges ($\alpha, \beta > 0.01$; $p_{\text{base}} \in [10^{-8}, 0.1]$; $n \in [0.5, 10]$; $\tau \in [0.01, 0.99]$).
-2. Draw $N = 1{,}000$ agent wages from the lognormal income distribution.
-3. Solve mean-field equilibrium under the flat fine ($F = 200$).
+1. Sample $N = 1{,}000$ agents with replacement from CPS microdata (weighted bootstrap), obtaining per-agent wages $w_i$ and marginal tax rates $\text{MTR}_i$.
+2. Draw $(\alpha, \beta, V, p_{\text{base}}, n)$ independently from their Normal priors, clipping to valid ranges ($\alpha, \beta > 0.01$; $p_{\text{base}} \in [10^{-8}, 0.1]$; $n \in [0.5, 10]$).
+3. Solve mean-field equilibrium under the flat fine ($F = 130$).
 4. Solve mean-field equilibrium under the income-based fine ($\phi = 0.002$).
 5. Record utilitarian welfare, mean speeding, Gini coefficient, and equilibrium transfers for each system.
 6. Compute the welfare difference $\Delta W = W_{\text{flat}} - W_{\text{IB}}$ and its decomposition.
 
-This procedure generates a joint distribution of outcomes over parameter uncertainty, allowing us to report credible intervals and welfare dominance probabilities rather than point estimates. {numref}`tab:priors` summarizes the prior specifications.
+Note that tax rates are **not drawn from priors**---they are empirical, fixed per agent, drawn from the CPS microdata. This is a key methodological improvement over using a single scalar tax rate parameter.
+
+{numref}`tab:priors` summarizes the prior specifications.
 
 ```{list-table} Prior specifications
 :header-rows: 1
@@ -90,7 +95,7 @@ This procedure generates a joint distribution of outcomes over parameter uncerta
   - $\alpha$
   - 0.50
   - 0.15
-  - Calibrated to Finnish speeding rates
+  - Calibrated to US speeding rates
 * - Labor disutility
   - $\beta$
   - 1.00
@@ -103,24 +108,19 @@ This procedure generates a joint distribution of outcomes over parameter uncerta
   - Standard full-time year
 * - Value of statistical life
   - $V$
-  - 3,600,000
-  - 900,000
-  - {cite}`eu_vsl2014`
+  - 11,600,000
+  - 2,900,000
+  - {cite}`epa_vsl2024`
 * - Baseline death probability
   - $p_{\text{base}}$
-  - 0.001
-  - 0.0005
-  - Finnish road safety statistics
+  - 0.00012
+  - 0.00006
+  - {cite}`nhtsa_fars2024`
 * - Speed-fatality exponent
   - $n$
   - 4.0
   - 0.5
   - {cite}`nilsson2004`, {cite}`elvik2019`
-* - Tax rate
-  - $\tau$
-  - 0.30
-  - 0.05
-  - {cite}`statistics_finland2023`
 * - Labor supply elasticity
   - $\varepsilon$
   - 0.25

@@ -5,7 +5,7 @@ agent:
   alpha:
     mean: 0.5
     sd: 0.15
-    source: "Calibrated to match Finnish speeding rates; Kaila 2024"
+    source: "Calibrated to match US speeding rates"
     description: "Speeding utility weight in log utility"
   beta:
     mean: 1.0
@@ -20,28 +20,21 @@ agent:
 
 safety:
   vsl:
-    mean: 3600000
-    sd: 900000
-    source: "EU Commission DG MOVE 2014; 3.6M EUR central estimate"
-    description: "Value of statistical life (EUR)"
-    unit: EUR
+    mean: 11600000
+    sd: 2900000
+    source: "US EPA 2024; $11.6M central estimate"
+    description: "Value of statistical life (USD)"
+    unit: USD
   death_prob_base:
-    mean: 0.001
-    sd: 0.0005
-    source: "Conditional on active driving (~15k km/yr): ~7 deaths/billion veh-km × 15k km = 1e-4 base, scaled up for speeding exposure; calibrated to produce interior solutions matching Finnish speeding rates"
+    mean: 0.00012
+    sd: 0.00006
+    source: "NHTSA FARS: 1.37 deaths per 100M VMT; ~13,400 mi/yr avg → 0.00012 annual base probability"
     description: "Baseline annual traffic death probability for active drivers"
   speed_fatality_exponent:
     mean: 4.0
     sd: 0.5
     source: "Nilsson 2004 power model; n≈4 for fatalities"
     description: "Exponent in p(s) = p_base * (1+s)^n"
-
-fiscal:
-  tax_rate:
-    mean: 0.30
-    sd: 0.05
-    source: "Finnish average effective tax rate; Statistics Finland 2023"
-    description: "Proportional income tax rate"
 
 labor:
   elasticity:

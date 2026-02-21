@@ -51,7 +51,8 @@ class SafetyPriors:
 
 @dataclass(frozen=True)
 class FiscalPriors:
-    tax_rate: Prior
+    """Fiscal priors (tax rates now come from CPS microdata)."""
+    pass
 
 
 @dataclass(frozen=True)
@@ -126,9 +127,7 @@ def load_priors() -> ModelPriors:
                 raw["safety"]["speed_fatality_exponent"]
             ),
         ),
-        fiscal=FiscalPriors(
-            tax_rate=_make_prior(raw["fiscal"]["tax_rate"]),
-        ),
+        fiscal=FiscalPriors(),
         labor=LaborPriors(
             elasticity=_make_prior(raw["labor"]["elasticity"]),
         ),
@@ -192,7 +191,6 @@ def validate() -> list[str]:
         ("vsl", priors.safety.vsl),
         ("death_prob_base", priors.safety.death_prob_base),
         ("speed_fatality_exponent", priors.safety.speed_fatality_exponent),
-        ("tax_rate", priors.fiscal.tax_rate),
         ("elasticity", priors.labor.elasticity),
     ]:
         if prior.sd < 0:
@@ -201,8 +199,8 @@ def validate() -> list[str]:
     # Reasonableness checks
     if not (0 < priors.agent.alpha.mean < 2):
         errors.append(f"alpha mean {priors.agent.alpha.mean} not in (0, 2)")
-    if not (1_000_000 < priors.safety.vsl.mean < 10_000_000):
-        errors.append(f"VSL mean {priors.safety.vsl.mean} not in (1M, 10M)")
+    if not (5_000_000 < priors.safety.vsl.mean < 20_000_000):
+        errors.append(f"VSL mean {priors.safety.vsl.mean} not in (5M, 20M)")
     if not (0 < priors.safety.speed_fatality_exponent.mean < 8):
         errors.append(
             f"Exponent mean {priors.safety.speed_fatality_exponent.mean} not in (0, 8)"

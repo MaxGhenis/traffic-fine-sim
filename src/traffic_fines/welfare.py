@@ -79,7 +79,7 @@ def _grid_search_welfare(
     alpha: float,
     beta: float,
     max_hours: float,
-    tax_rate: float,
+    tax_rates: float,
     vsl: float,
     p_base: float,
     exponent: float,
@@ -101,7 +101,7 @@ def _grid_search_welfare(
         eq = solve_equilibrium(
             wages, make_fine_system(value),
             alpha=alpha, beta=beta, max_hours=max_hours,
-            tax_rate=tax_rate, vsl=vsl, p_base=p_base, exponent=exponent,
+            tax_rates=tax_rates, vsl=vsl, p_base=p_base, exponent=exponent,
         )
         if eq.total_welfare > best_welfare:
             best_welfare = eq.total_welfare
@@ -115,7 +115,7 @@ def find_optimal_flat_fine(
     alpha: float,
     beta: float,
     max_hours: float,
-    tax_rate: float,
+    tax_rates: float,
     vsl: float,
     p_base: float,
     exponent: float,
@@ -127,12 +127,12 @@ def find_optimal_flat_fine(
         (optimal_amount, welfare) tuple.
     """
     if fine_grid is None:
-        fine_grid = [50, 100, 200, 500, 1000, 2000, 5000]
+        fine_grid = [25, 50, 100, 200, 500, 1000]
 
     return _grid_search_welfare(
         wages, fine_grid, lambda amt: FlatFine(amount=amt),
         alpha=alpha, beta=beta, max_hours=max_hours,
-        tax_rate=tax_rate, vsl=vsl, p_base=p_base, exponent=exponent,
+        tax_rates=tax_rates, vsl=vsl, p_base=p_base, exponent=exponent,
     )
 
 
@@ -141,7 +141,7 @@ def find_optimal_ib_rate(
     alpha: float,
     beta: float,
     max_hours: float,
-    tax_rate: float,
+    tax_rates: float,
     vsl: float,
     p_base: float,
     exponent: float,
@@ -158,5 +158,5 @@ def find_optimal_ib_rate(
     return _grid_search_welfare(
         wages, rate_grid, lambda r: IncomeBasedFine(rate=r),
         alpha=alpha, beta=beta, max_hours=max_hours,
-        tax_rate=tax_rate, vsl=vsl, p_base=p_base, exponent=exponent,
+        tax_rates=tax_rates, vsl=vsl, p_base=p_base, exponent=exponent,
     )

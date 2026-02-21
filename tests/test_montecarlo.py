@@ -1,13 +1,39 @@
 """Tests for Monte Carlo uncertainty propagation."""
 
 import numpy as np
+import pandas as pd
 import pytest
+from unittest.mock import patch
 
 from traffic_fines.montecarlo import MonteCarloResult, run_montecarlo
 
 
 N_SAMPLES = 20
 N_AGENTS = 5
+
+
+@pytest.fixture(autouse=True)
+def mock_cps(tmp_path):
+    """Mock CPS data for MC tests."""
+    rng_data = np.random.default_rng(99)
+    n = 500
+    incomes = rng_data.lognormal(10.5, 0.8, n)
+    mtrs = np.clip(rng_data.normal(0.25, 0.15, n), 0.0, 0.95)
+    df = pd.DataFrame({
+        "employment_income": incomes,
+        "marginal_tax_rate": mtrs,
+        "person_weight": rng_data.uniform(50, 500, n),
+        "age": rng_data.integers(18, 65, n),
+        "hourly_wage": incomes / 2080,
+    })
+    parquet_path = tmp_path / "cps_agents.parquet"
+    df.to_parquet(parquet_path)
+
+    from traffic_fines import cps_data
+    cps_data.load_cps_data.cache_clear()
+    with patch.object(cps_data, "PARQUET_PATH", parquet_path):
+        yield
+    cps_data.load_cps_data.cache_clear()
 
 
 @pytest.fixture
@@ -96,7 +122,7 @@ class TestParameterDraws:
     """Parameter draws are stored with correct shapes."""
 
     def test_param_draws_keys(self, mc_result):
-        expected_keys = {"alpha", "beta", "vsl", "p_base", "exponent", "tax_rate"}
+        expected_keys = {"alpha", "beta", "vsl", "p_base", "exponent"}
         assert set(mc_result.param_draws.keys()) == expected_keys
 
     def test_param_draws_shapes(self, mc_result):

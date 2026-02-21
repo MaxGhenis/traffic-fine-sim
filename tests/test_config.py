@@ -40,7 +40,6 @@ class TestLoadPriors:
             priors.safety.vsl,
             priors.safety.death_prob_base,
             priors.safety.speed_fatality_exponent,
-            priors.fiscal.tax_rate,
             priors.labor.elasticity,
         ]:
             assert prior.sd >= 0, f"{prior.description} has negative sd"
@@ -51,7 +50,7 @@ class TestLoadPriors:
 
     def test_priors_vsl_reasonable(self):
         priors = load_priors()
-        assert 1_000_000 < priors.safety.vsl.mean < 10_000_000
+        assert 5_000_000 < priors.safety.vsl.mean < 20_000_000
 
     def test_priors_exponent_reasonable(self):
         priors = load_priors()
@@ -62,7 +61,7 @@ class TestLoadIncomeDistribution:
     def test_load_income_distribution(self):
         dist = load_income_distribution()
         assert isinstance(dist, IncomeDistribution)
-        assert dist.type == "lognormal"
+        assert dist.type == "cps_microdata"
 
     def test_income_distribution_positive_values(self):
         dist = load_income_distribution()

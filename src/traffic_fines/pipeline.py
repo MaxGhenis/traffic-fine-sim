@@ -9,8 +9,10 @@ from pathlib import Path
 
 import numpy as np
 
-from traffic_fines.config import load_income_distribution, load_priors
+from traffic_fines.config import load_priors
+from traffic_fines.cps_data import sample_agents
 from traffic_fines.model import FlatFine, IncomeBasedFine, solve_equilibrium
+from traffic_fines.welfare import find_optimal_flat_fine, find_optimal_ib_rate
 
 DATA_DIR = Path(__file__).parent / "data"
 
@@ -89,7 +91,6 @@ def run_analysis(
 
     rng = np.random.default_rng(seed)
     priors = load_priors()
-    dist = load_income_distribution()
 
     # Storage
     flat_welfare = np.zeros(n_samples)
@@ -122,20 +123,14 @@ def run_analysis(
                 priors.safety.speed_fatality_exponent.sd,
             ),
         )
-        tax_rate = np.clip(
-            rng.normal(priors.fiscal.tax_rate.mean, priors.fiscal.tax_rate.sd),
-            0.01,
-            0.99,
-        )
-
-        # Generate wages
-        wages = np.maximum(
-            5.0, rng.normal(dist.mean_income / max_hours, dist.income_std / max_hours, size=n_agents)
-        )
+        # Sample agents from CPS microdata
+        agent_sample = sample_agents(n_agents, rng)
+        wages = agent_sample.wages
+        tax_rates = agent_sample.tax_rates
 
         shared = dict(
             alpha=alpha, beta=beta, max_hours=max_hours,
-            tax_rate=tax_rate, vsl=vsl, p_base=p_base, exponent=exponent,
+            tax_rates=tax_rates, vsl=vsl, p_base=p_base, exponent=exponent,
         )
 
         # Find optimal flat fine
@@ -186,7 +181,7 @@ def run_analysis(
             "vsl_mean": priors.safety.vsl.mean,
             "p_base_mean": priors.safety.death_prob_base.mean,
             "exponent_mean": priors.safety.speed_fatality_exponent.mean,
-            "tax_rate_mean": priors.fiscal.tax_rate.mean,
+            "mtr_source": "PolicyEngine US Enhanced CPS 2024",
             "n_agents": n_agents,
             "flat_grid": flat_grid,
             "ib_grid": ib_grid,

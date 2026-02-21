@@ -3,10 +3,13 @@
 import json
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
+import pandas as pd
 import pytest
 
+from traffic_fines.cps_data import AgentSample
 from traffic_fines.pipeline import AnalysisResults, run_analysis
 
 
@@ -14,7 +17,31 @@ FAST_FLAT_GRID = [100, 500]
 FAST_IB_GRID = [0.002, 0.01]
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(autouse=True)
+def mock_cps(tmp_path):
+    """Mock CPS data for pipeline tests."""
+    rng = np.random.default_rng(99)
+    n = 500
+    incomes = rng.lognormal(10.5, 0.8, n)
+    mtrs = np.clip(rng.normal(0.25, 0.15, n), 0.0, 0.95)
+    df = pd.DataFrame({
+        "employment_income": incomes,
+        "marginal_tax_rate": mtrs,
+        "person_weight": rng.uniform(50, 500, n),
+        "age": rng.integers(18, 65, n),
+        "hourly_wage": incomes / 2080,
+    })
+    parquet_path = tmp_path / "cps_agents.parquet"
+    df.to_parquet(parquet_path)
+
+    from traffic_fines import cps_data
+    cps_data.load_cps_data.cache_clear()
+    with patch.object(cps_data, "PARQUET_PATH", parquet_path):
+        yield
+    cps_data.load_cps_data.cache_clear()
+
+
+@pytest.fixture
 def results() -> AnalysisResults:
     """Run a fast analysis for testing (tiny samples, small grids)."""
     return run_analysis(
@@ -124,3 +151,5 @@ class TestParametersStored:
         assert "alpha_mean" in params
         assert "vsl_mean" in params
         assert "p_base_mean" in params
+        assert "mtr_source" in params  # CPS-based MTRs, not scalar tax_rate
+        assert "tax_rate_mean" not in params  # Removed: no longer a single prior

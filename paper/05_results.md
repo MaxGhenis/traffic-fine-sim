@@ -4,7 +4,7 @@ title: Results
 
 # Results
 
-This section presents the main findings from the Monte Carlo analysis. We report welfare comparisons between flat and income-based fines, distributional outcomes, welfare decompositions, and convergence diagnostics. All results are computed over 10,000 parameter draws from the priors specified in Section 4.
+This section presents the main findings from the Monte Carlo analysis. We report welfare comparisons between flat and income-based fines, distributional outcomes, welfare decompositions, and convergence diagnostics. All results are computed over 10,000 parameter draws from the priors specified in Section 4, with each draw sampling 1,000 agents from US CPS microdata with empirically estimated marginal tax rates.
 
 ## Baseline welfare comparison
 
@@ -14,9 +14,9 @@ The central question is whether flat or income-based fines generate higher socia
 Results in this section are placeholders that will be populated from the simulation pipeline when `results.json` is available. The structure and interpretation reflect the model's theoretical predictions.
 ```
 
-**Finding 1.** *Under the baseline calibration, flat fines generate higher utilitarian welfare than income-based fines in a majority of Monte Carlo draws.*
+**Finding 1.** *Under the baseline calibration using US CPS data, flat fines generate higher utilitarian welfare than income-based fines in a majority of Monte Carlo draws.*
 
-The welfare advantage of flat fines reflects the double distortion mechanism: income-based fines create an implicit tax on labor income that compounds the pre-existing income tax distortion. While income-based fines achieve better deterrence equity---more uniform expected disutility across the income distribution---this benefit is outweighed by the efficiency cost of reduced labor supply among speeders.
+The welfare advantage of flat fines reflects the double distortion mechanism: income-based fines create an implicit tax on labor income that compounds the pre-existing---and highly heterogeneous---marginal tax rate distortion. While income-based fines achieve better deterrence equity---more uniform expected disutility across the income distribution---this benefit is outweighed by the efficiency cost of reduced labor supply among speeders.
 
 The distribution of welfare differences $\Delta W = W_{\text{flat}} - W_{\text{IB}}$ across Monte Carlo draws reveals the sensitivity of this comparison to parameter uncertainty. The distribution is centered above zero (flat fines dominate) but has substantial dispersion, with income-based fines dominating in a non-trivial fraction of draws.
 
@@ -48,15 +48,17 @@ The decomposition reveals:
 
 ## Effective marginal tax rates
 
-The implicit tax created by income-based fines varies across agents and represents the core mechanism of the double distortion.
+The implicit tax created by income-based fines varies across agents and represents the core mechanism of the double distortion. Because we use empirical per-agent MTRs from the CPS, the interaction between fines and existing taxes is heterogeneous across the income distribution.
 
-**Finding 5.** *Under income-based fines, effective marginal tax rates for regular speeders exceed the statutory tax rate by 2--8 percentage points, with larger increases for agents who speed more intensively.*
+**Finding 5.** *Under income-based fines, effective marginal tax rates for regular speeders exceed their CPS-based marginal tax rates by 2--8 percentage points, with larger increases for agents who speed more intensively.*
 
-For an agent with speeding intensity $s$ facing tax rate $\tau$ and fine rate $\phi$, the effective marginal tax rate on labor income is:
+For an agent with speeding intensity $s$ facing marginal tax rate $\text{MTR}_i$ and fine rate $\phi$, the effective marginal tax rate on labor income is:
 
-$$\text{EMTR} = \tau + \phi s$$
+$$\text{EMTR}_i = \text{MTR}_i + \phi s$$
 
-At the baseline fine rate $\phi = 0.002$, an agent with moderate speeding ($s = 0.1$) faces an additional 0.02 percentage point effective tax; with high speeding ($s = 0.5$) the additional tax rises to 0.1 percentage points. The welfare cost of these additional tax wedges is amplified by the pre-existing tax rate because deadweight loss is convex in the total tax rate {cite}`harberger1964`.
+At the baseline fine rate $\phi = 0.002$, an agent with moderate speeding ($s = 0.1$) faces an additional 0.02 percentage point effective tax; with high speeding ($s = 0.5$) the additional tax rises to 0.1 percentage points. The welfare cost of these additional tax wedges is amplified by the pre-existing marginal tax rate because deadweight loss is convex in the total tax rate {cite}`harberger1964`.
+
+Crucially, the impact is most severe for workers already facing high marginal rates. Workers in the EITC phase-out region (earning roughly $20,000--$50,000) face baseline MTRs near 40%; adding an income-based fine on top pushes their effective rates even higher, generating disproportionate deadweight loss. By contrast, some middle-income workers above the EITC range face MTRs of only 22--25%, so the same fine creates less additional distortion.
 
 ## Sensitivity to key parameters
 
@@ -68,11 +70,11 @@ The welfare ranking is most sensitive to the labor supply elasticity.
 
 This finding has a simple intuition: the labor distortion channel matters more when labor supply is elastic. When agents are unresponsive to tax rates, the implicit tax from income-based fines has small efficiency costs, and the deterrence equity benefit dominates.
 
-### Tax rate
+### Marginal tax rate distribution
 
-**Finding 7.** *Higher pre-existing tax rates favor flat fines. The deadweight loss from the income-based fine's implicit tax is larger when it compounds a high statutory rate.*
+**Finding 7.** *Higher pre-existing marginal tax rates favor flat fines. The deadweight loss from the income-based fine's implicit tax is larger when it compounds already-high marginal rates.*
 
-This result follows directly from the convexity of deadweight loss: adding $\phi s$ to a 20% tax rate generates less additional distortion than adding the same amount to a 40% rate.
+This result follows directly from the convexity of deadweight loss: adding $\phi s$ to a 20% marginal rate generates less additional distortion than adding the same amount to a 40% rate. With heterogeneous CPS-based MTRs, the double distortion is most severe for the subset of workers facing the highest baseline rates---particularly those on EITC phase-out and high-income earners facing combined federal-state rates above 40%.
 
 ### Value of statistical life
 

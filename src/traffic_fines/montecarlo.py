@@ -2,14 +2,16 @@
 
 Draws model parameters from their Normal priors, solves equilibrium
 under both flat and income-based fine systems, and collects welfare,
-speeding, and inequality outcomes across samples.
+speeding, and inequality outcomes across samples. Agent wages and
+marginal tax rates are drawn from CPS microdata (USD).
 """
 
 from dataclasses import dataclass
 
 import numpy as np
 
-from traffic_fines.config import load_income_distribution, load_priors
+from traffic_fines.config import load_priors
+from traffic_fines.cps_data import sample_agents
 from traffic_fines.model import FlatFine, IncomeBasedFine, solve_equilibrium
 
 
@@ -33,15 +35,15 @@ def run_montecarlo(
     n_samples: int = 100,
     seed: int = 42,
     n_agents: int = 10,
-    flat_amount: float = 200.0,
+    flat_amount: float = 130.0,
     ib_rate: float = 0.002,
 ) -> MonteCarloResult:
     """Forward Monte Carlo over parameter uncertainty.
 
     For each sample:
-    1. Draw alpha, beta, vsl, p_base, exponent, tax_rate from Normal priors
+    1. Draw alpha, beta, vsl, p_base, exponent from Normal priors
        (clipped to valid ranges).
-    2. Generate wages from lognormal distribution.
+    2. Sample wages and marginal tax rates from CPS microdata (USD).
     3. Solve equilibrium for flat fine.
     4. Solve equilibrium for income-based fine.
     5. Record welfare, speeding, gini.
@@ -50,7 +52,7 @@ def run_montecarlo(
         n_samples: Number of Monte Carlo draws.
         seed: Random seed for reproducibility.
         n_agents: Number of agents per simulation.
-        flat_amount: Flat fine amount (EUR).
+        flat_amount: Flat fine amount (USD).
         ib_rate: Income-based fine rate.
 
     Returns:
@@ -58,7 +60,6 @@ def run_montecarlo(
     """
     rng = np.random.default_rng(seed)
     priors = load_priors()
-    income_dist = load_income_distribution()
 
     # Pre-allocate output arrays
     flat_welfare = np.zeros(n_samples)
@@ -79,35 +80,25 @@ def run_montecarlo(
         "vsl": _draw_clipped(priors.safety.vsl, 1e4, np.inf),
         "p_base": _draw_clipped(priors.safety.death_prob_base, 1e-8, 0.1),
         "exponent": _draw_clipped(priors.safety.speed_fatality_exponent, 0.5, 10.0),
-        "tax_rate": _draw_clipped(priors.fiscal.tax_rate, 0.01, 0.99),
     }
 
     # Fixed max_hours (sd=0 in priors)
     max_hours = priors.agent.max_hours.mean
 
-    # Lognormal wage parameters from income distribution
-    mu_log = np.log(
-        income_dist.mean_income**2
-        / np.sqrt(income_dist.income_std**2 + income_dist.mean_income**2)
-    )
-    sigma_log = np.sqrt(
-        np.log(1 + (income_dist.income_std / income_dist.mean_income) ** 2)
-    )
-
     flat_fine = FlatFine(amount=flat_amount)
     ib_fine = IncomeBasedFine(rate=ib_rate)
 
     for i in range(n_samples):
-        # Generate wages (hourly) from lognormal
-        annual_incomes = rng.lognormal(mu_log, sigma_log, n_agents)
-        wages = annual_incomes / max_hours
+        # Sample wages and tax rates from CPS microdata
+        agent_sample = sample_agents(n_agents, rng)
+        wages = agent_sample.wages
+        tax_rates = agent_sample.tax_rates
 
         alpha = float(param_draws["alpha"][i])
         beta = float(param_draws["beta"][i])
         vsl = float(param_draws["vsl"][i])
         p_base = float(param_draws["p_base"][i])
         exponent = float(param_draws["exponent"][i])
-        tax_rate = float(param_draws["tax_rate"][i])
 
         # Solve equilibrium under flat fine
         flat_result = solve_equilibrium(
@@ -116,7 +107,7 @@ def run_montecarlo(
             alpha=alpha,
             beta=beta,
             max_hours=max_hours,
-            tax_rate=tax_rate,
+            tax_rates=tax_rates,
             vsl=vsl,
             p_base=p_base,
             exponent=exponent,
@@ -132,7 +123,7 @@ def run_montecarlo(
             alpha=alpha,
             beta=beta,
             max_hours=max_hours,
-            tax_rate=tax_rate,
+            tax_rates=tax_rates,
             vsl=vsl,
             p_base=p_base,
             exponent=exponent,

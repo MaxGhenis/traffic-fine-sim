@@ -114,11 +114,11 @@ class Agent:
     alpha: float
     beta: float
     max_hours: float
+    tax_rate: float  # per-agent marginal tax rate
 
     def optimize(
         self,
         fine_system: FineSystem,
-        tax_rate: float,
         ubi: float,
         vsl: float,
         p_base: float,
@@ -134,7 +134,7 @@ class Agent:
             h, s = x
             income = self.wage * h
             fine = fine_system.calculate(income, s)
-            consumption = income * (1.0 - tax_rate) - fine + ubi
+            consumption = income * (1.0 - self.tax_rate) - fine + ubi
             if consumption <= 0:
                 return 1e10  # Infeasible
             return -utility(
@@ -205,7 +205,7 @@ def solve_equilibrium(
     alpha: float,
     beta: float,
     max_hours: float,
-    tax_rate: float,
+    tax_rates: float | np.ndarray,
     vsl: float,
     p_base: float,
     exponent: float,
@@ -224,7 +224,7 @@ def solve_equilibrium(
         alpha: Speeding utility weight.
         beta: Labor disutility coefficient.
         max_hours: Maximum annual work hours.
-        tax_rate: Proportional income tax rate.
+        tax_rates: Proportional income tax rate(s). Scalar or per-agent array.
         vsl: Value of statistical life.
         p_base: Baseline death probability.
         exponent: Speed-fatality exponent.
@@ -236,7 +236,15 @@ def solve_equilibrium(
         EquilibriumResult with per-agent choices and aggregate statistics.
     """
     n = len(wages)
-    agents = [Agent(wage=w, alpha=alpha, beta=beta, max_hours=max_hours) for w in wages]
+
+    # Broadcast scalar tax_rates to per-agent array
+    tax_rates_arr = np.asarray(tax_rates, dtype=float)
+    if tax_rates_arr.ndim == 0:
+        tax_rates_arr = np.full(n, float(tax_rates_arr))
+    elif len(tax_rates_arr) != n:
+        raise ValueError(f"tax_rates length {len(tax_rates_arr)} != wages length {n}")
+
+    agents = [Agent(wage=w, alpha=alpha, beta=beta, max_hours=max_hours, tax_rate=t) for w, t in zip(wages, tax_rates_arr)]
 
     # Initialize UBI
     ubi = 0.0
@@ -249,7 +257,7 @@ def solve_equilibrium(
         speeding = np.zeros(n)
 
         for i, agent in enumerate(agents):
-            h, s = agent.optimize(fine_system, tax_rate, ubi, vsl, p_base, exponent)
+            h, s = agent.optimize(fine_system, ubi, vsl, p_base, exponent)
             hours[i] = h
             speeding[i] = s
 
@@ -258,7 +266,7 @@ def solve_equilibrium(
         fines = np.array([
             fine_system.calculate(inc, spd) for inc, spd in zip(incomes, speeding)
         ])
-        tax_revenue = np.sum(incomes * tax_rate)
+        tax_revenue = np.sum(incomes * tax_rates_arr)
         fine_revenue = np.sum(fines)
 
         # New UBI = total revenue / N
@@ -274,7 +282,7 @@ def solve_equilibrium(
             break
 
     # Final computation
-    consumptions = incomes * (1.0 - tax_rate) - fines + ubi
+    consumptions = incomes * (1.0 - tax_rates_arr) - fines + ubi
     utilities = np.array([
         utility(c, s, h, alpha, beta, max_hours, vsl, p_base, exponent)
         for c, s, h in zip(consumptions, speeding, hours)

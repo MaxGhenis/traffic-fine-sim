@@ -163,10 +163,9 @@ class TestAgent:
 
     def test_agent_optimizes_valid_choices(self):
         """Agent should return hours in [0, 2080] and speeding in [0, 1]."""
-        agent = Agent(wage=20.0, alpha=0.5, beta=1.0, max_hours=2080)
+        agent = Agent(wage=20.0, alpha=0.5, beta=1.0, max_hours=2080, tax_rate=0.3)
         hours, speeding = agent.optimize(
             fine_system=FlatFine(amount=200),
-            tax_rate=0.3,
             ubi=0.0,
             vsl=3_600_000,
             p_base=0.001,
@@ -177,32 +176,32 @@ class TestAgent:
 
     def test_higher_fine_reduces_speeding(self):
         """Higher fines should reduce optimal speeding."""
-        agent = Agent(wage=20.0, alpha=0.5, beta=1.0, max_hours=2080)
+        agent = Agent(wage=20.0, alpha=0.5, beta=1.0, max_hours=2080, tax_rate=0.3)
         _, s_low = agent.optimize(
-            FlatFine(amount=50), 0.3, 0.0, 3_600_000, 0.00005, 4.0
+            FlatFine(amount=50), 0.0, 3_600_000, 0.00005, 4.0
         )
         _, s_high = agent.optimize(
-            FlatFine(amount=500), 0.3, 0.0, 3_600_000, 0.00005, 4.0
+            FlatFine(amount=500), 0.0, 3_600_000, 0.00005, 4.0
         )
         assert s_high <= s_low
 
     def test_higher_wage_more_hours(self):
         """Higher wage should induce more labor supply."""
-        agent_low = Agent(wage=10.0, alpha=0.5, beta=1.0, max_hours=2080)
-        agent_high = Agent(wage=30.0, alpha=0.5, beta=1.0, max_hours=2080)
+        agent_low = Agent(wage=10.0, alpha=0.5, beta=1.0, max_hours=2080, tax_rate=0.3)
+        agent_high = Agent(wage=30.0, alpha=0.5, beta=1.0, max_hours=2080, tax_rate=0.3)
         h_low, _ = agent_low.optimize(
-            FlatFine(amount=200), 0.3, 0.0, 3_600_000, 0.00005, 4.0
+            FlatFine(amount=200), 0.0, 3_600_000, 0.00005, 4.0
         )
         h_high, _ = agent_high.optimize(
-            FlatFine(amount=200), 0.3, 0.0, 3_600_000, 0.00005, 4.0
+            FlatFine(amount=200), 0.0, 3_600_000, 0.00005, 4.0
         )
         assert h_high >= h_low
 
     def test_agent_consumption_positive(self):
         """Agent should choose hours such that consumption is positive."""
-        agent = Agent(wage=20.0, alpha=0.5, beta=1.0, max_hours=2080)
+        agent = Agent(wage=20.0, alpha=0.5, beta=1.0, max_hours=2080, tax_rate=0.3)
         hours, speeding = agent.optimize(
-            FlatFine(amount=200), 0.3, 0.0, 3_600_000, 0.00005, 4.0
+            FlatFine(amount=200), 0.0, 3_600_000, 0.00005, 4.0
         )
         income = agent.wage * hours
         consumption = income * (1 - 0.3) - FlatFine(200).calculate(income, speeding)
@@ -227,7 +226,7 @@ class TestEquilibrium:
             alpha=0.5,
             beta=1.0,
             max_hours=2080,
-            tax_rate=0.3,
+            tax_rates=0.3,
             vsl=3_600_000,
             p_base=0.001,
             exponent=4.0,
@@ -246,7 +245,7 @@ class TestEquilibrium:
             alpha=0.5,
             beta=1.0,
             max_hours=2080,
-            tax_rate=0.3,
+            tax_rates=0.3,
             vsl=3_600_000,
             p_base=0.001,
             exponent=4.0,
@@ -264,7 +263,7 @@ class TestEquilibrium:
             alpha=0.5,
             beta=1.0,
             max_hours=2080,
-            tax_rate=0.3,
+            tax_rates=0.3,
             vsl=3_600_000,
             p_base=0.001,
             exponent=4.0,
@@ -279,7 +278,7 @@ class TestEquilibrium:
             alpha=0.5,
             beta=1.0,
             max_hours=2080,
-            tax_rate=0.3,
+            tax_rates=0.3,
             vsl=3_600_000,
             p_base=0.001,
             exponent=4.0,
@@ -290,7 +289,7 @@ class TestEquilibrium:
             alpha=0.5,
             beta=1.0,
             max_hours=2080,
-            tax_rate=0.3,
+            tax_rates=0.3,
             vsl=3_600_000,
             p_base=0.001,
             exponent=4.0,
@@ -309,7 +308,7 @@ class TestEquilibrium:
             alpha=0.5,
             beta=1.0,
             max_hours=2080,
-            tax_rate=0.3,
+            tax_rates=0.3,
             vsl=3_600_000,
             p_base=0.001,
             exponent=4.0,
@@ -325,7 +324,7 @@ class TestEquilibrium:
             alpha=0.5,
             beta=1.0,
             max_hours=2080,
-            tax_rate=0.3,
+            tax_rates=0.3,
             vsl=3_600_000,
             p_base=0.001,
             exponent=4.0,
@@ -340,7 +339,7 @@ class TestEquilibrium:
             alpha=0.5,
             beta=1.0,
             max_hours=2080,
-            tax_rate=0.3,
+            tax_rates=0.3,
             vsl=3_600_000,
             p_base=0.001,
             exponent=4.0,
@@ -348,3 +347,78 @@ class TestEquilibrium:
         assert hasattr(result, "iterations")
         assert hasattr(result, "max_delta")
         assert hasattr(result, "converged")
+
+
+class TestPerAgentTaxRates:
+    """Tests for heterogeneous per-agent tax rates."""
+
+    @pytest.fixture
+    def small_economy(self):
+        np.random.seed(42)
+        return np.maximum(5.0, np.random.lognormal(np.log(20), 0.5, size=10))
+
+    def test_array_tax_rates_accepted(self, small_economy):
+        """solve_equilibrium accepts array of tax rates."""
+        n = len(small_economy)
+        tax_rates = np.linspace(0.1, 0.4, n)
+        result = solve_equilibrium(
+            wages=small_economy,
+            fine_system=FlatFine(amount=200),
+            alpha=0.5, beta=1.0, max_hours=2080,
+            tax_rates=tax_rates,
+            vsl=3_600_000, p_base=0.001, exponent=4.0,
+        )
+        assert result.converged
+
+    def test_scalar_and_array_equivalent(self, small_economy):
+        """Scalar tax_rates should give same result as uniform array."""
+        n = len(small_economy)
+        result_scalar = solve_equilibrium(
+            wages=small_economy,
+            fine_system=FlatFine(amount=200),
+            alpha=0.5, beta=1.0, max_hours=2080,
+            tax_rates=0.3,
+            vsl=3_600_000, p_base=0.001, exponent=4.0,
+        )
+        result_array = solve_equilibrium(
+            wages=small_economy,
+            fine_system=FlatFine(amount=200),
+            alpha=0.5, beta=1.0, max_hours=2080,
+            tax_rates=np.full(n, 0.3),
+            vsl=3_600_000, p_base=0.001, exponent=4.0,
+        )
+        np.testing.assert_allclose(
+            result_scalar.utilities, result_array.utilities, rtol=1e-6
+        )
+
+    def test_length_mismatch_raises(self, small_economy):
+        """Array tax_rates with wrong length should raise."""
+        wrong_length = np.array([0.2, 0.3])  # Only 2 but 10 agents
+        with pytest.raises(ValueError):
+            solve_equilibrium(
+                wages=small_economy,
+                fine_system=FlatFine(amount=200),
+                alpha=0.5, beta=1.0, max_hours=2080,
+                tax_rates=wrong_length,
+                vsl=3_600_000, p_base=0.001, exponent=4.0,
+            )
+
+    def test_heterogeneous_tax_rates_affect_labor(self, small_economy):
+        """Agents with higher tax rates should work less."""
+        n = len(small_economy)
+        low_tax = solve_equilibrium(
+            wages=small_economy,
+            fine_system=FlatFine(amount=200),
+            alpha=0.5, beta=1.0, max_hours=2080,
+            tax_rates=0.1,
+            vsl=3_600_000, p_base=0.001, exponent=4.0,
+        )
+        high_tax = solve_equilibrium(
+            wages=small_economy,
+            fine_system=FlatFine(amount=200),
+            alpha=0.5, beta=1.0, max_hours=2080,
+            tax_rates=0.5,
+            vsl=3_600_000, p_base=0.001, exponent=4.0,
+        )
+        # Higher taxes should reduce labor supply
+        assert np.mean(high_tax.hours) <= np.mean(low_tax.hours)
