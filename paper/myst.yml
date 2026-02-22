@@ -31,6 +31,11 @@ project:
   bibliography:
     - references.bib
 
+  exports:
+    - format: pdf
+      template: plain_latex
+      output: exports/traffic-fines.pdf
+
 site:
   template: book-theme
 

@@ -25,18 +25,37 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r paper/requirements.txt
           pip install -e .
-      
+          npm install -g mystmd
+
+      - name: Install LaTeX
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y texlive-latex-extra texlive-fonts-recommended texlive-fonts-extra latexmk
+
       - name: Build the book
         run: |
           cd paper
-          jupyter-book build . --builder html -n
-      
+          export BASE_URL="/traffic-fine-sim"
+          myst build --html
+          touch _build/html/.nojekyll
+
+      - name: Build PDF
+        run: |
+          cd paper
+          myst build --pdf
+          cp _build/exports/*.pdf _build/html/ 2>/dev/null || true
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
